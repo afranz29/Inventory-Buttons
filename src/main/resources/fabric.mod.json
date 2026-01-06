@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "inventorybuttons",
+	"version": "${version}",
+	"name": "InventoryButtons",
+	"description": "Add buttons to your inventory that execute any command you want!",
+	"authors": [
+		"PandaBear29",
+		"NotEnoughUpdate Contributors"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/afranz29/Inventory-Buttons-1.21.5"
+	},
+	"license": "LGPL-3.0",
+	"icon": "assets/inventorybuttons/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"client": [
+			"com.panda.inventorybuttons.InventoryButtonsClient"
+		]
+	},
+	"mixins": [
+		"inventorybuttons.mixins.json",
+		{
+			"config": "inventorybuttons.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.4",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
