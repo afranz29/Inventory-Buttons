@@ -1,6 +1,6 @@
 # Inventory Buttons (Unofficial Port)
 
-A Fabric mod for Minecraft 1.21.5 that brings the popular "Inventory Buttons" feature from [NotEnoughUpdates (NEU)](https://github.com/Moulberry/NotEnoughUpdates) to modern versions of Minecraft.
+A Fabric mod for Minecraft 1.21.5 that brings the popular "Inventory Buttons" feature from [NotEnoughUpdates (NEU)](https://github.com/NotEnoughUpdates/NotEnoughUpdates) to modern versions of Minecraft.
 
 ## Features
 
@@ -18,7 +18,7 @@ A Fabric mod for Minecraft 1.21.5 that brings the popular "Inventory Buttons" fe
 _For more information about installing Fabric_
 
 ### Install Inventory Buttons Mod
-1.  Download the latest `.jar` file from the [Releases](https://github.com/yourusername/inventory-buttons/releases) page.
+1.  Download the latest `.jar` file from the [Releases](https://github.com/afranz29/Inventory-Buttons/releases) page.
 3.  Place the downloaded `.jar` file into your `.minecraft/mods` folder.
 4.  Launch the game!
 
@@ -26,8 +26,8 @@ _For more information about installing Fabric_
 
 This mod is a derivative work based on **NotEnoughUpdates (NEU)**.
 
-* **Original Author:** [Moulberry](https://github.com/Moulberry)
-* **Original Repository:** [NotEnoughUpdates](https://github.com/Moulberry/NotEnoughUpdates)
+* **Original Author:** [Moulberry](https://github.com/Moulberry), Many other contributors
+* **Original Repository:** [NotEnoughUpdate](https://github.com/NotEnoughUpdates/NotEnoughUpdates)
 * **Assets & Design:** All textures and design concepts for the buttons and editor are the intellectual property of the NotEnoughUpdates contributors.
 
 This port is not endorsed by, affiliated with, or supported by the official NotEnoughUpdates team. Please do not report bugs regarding this mod to the official NEU tracker.
