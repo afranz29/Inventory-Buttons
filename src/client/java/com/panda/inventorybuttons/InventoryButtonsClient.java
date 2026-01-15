@@ -2,6 +2,7 @@ package com.panda.inventorybuttons;
 
 import com.panda.inventorybuttons.gui.GuiInvButtonEditor;
 import com.panda.inventorybuttons.gui.GuiInvButtonMenu;
+import com.panda.inventorybuttons.util.HypixelItemManager;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -16,6 +17,9 @@ public class InventoryButtonsClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		InventoryButtons.load();
+
+		// Fetch Hypixel items in background
+		HypixelItemManager.loadAsync();
 
 		// Register commands
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
@@ -32,7 +36,7 @@ public class InventoryButtonsClient implements ClientModInitializer {
 					}))
 			);
 
-			// Command: /inventorybuttons (Alias)
+			// Command: /inventorybuttons
 			dispatcher.register(literal("inventorybuttons")
 					.executes(context -> {
 						openMenuNextTick = true;

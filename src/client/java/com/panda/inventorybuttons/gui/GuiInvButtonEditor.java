@@ -3,6 +3,7 @@ package com.panda.inventorybuttons.gui;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.panda.inventorybuttons.InventoryButtons;
+import com.panda.inventorybuttons.util.HypixelItemManager;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -138,6 +139,17 @@ public class GuiInvButtonEditor extends Screen {
         public String getConfigId() { return textureId.toString(); }
     }
 
+    private record HypixelResult(HypixelItemManager.HypixelItem item) implements IconResult {
+        @Override
+        public void render(DrawContext context, int x, int y) {
+            context.drawItem(item.iconStack(), x, y);
+        }
+        @Override
+        public String getDisplayName() { return item.name(); }
+        @Override
+        public String getConfigId() { return item.configId(); }
+    }
+
     private final Screen parent;
     private final int xSize = 176;
     private final int ySize = 166;
@@ -169,9 +181,14 @@ public class GuiInvButtonEditor extends Screen {
     private String actionStatusText = "";
     private long actionStatusEndTime = 0;
 
+    // Local gridSnap state
+    private boolean localGridSnap;
+
     public GuiInvButtonEditor(Screen parent) {
         super(Text.literal("NEU Button Editor Port"));
         this.parent = parent;
+        // Initialize local state from global default
+        this.localGridSnap = InventoryButtons.instance.gridSnap;
     }
 
     @Override
@@ -251,8 +268,7 @@ public class GuiInvButtonEditor extends Screen {
                 context.drawBorder(x, y, 18, 18, 0xFFFFFFFF);
             } else {
                 context.drawTexture(RenderLayer::getGuiOpaqueTexturedBackground, BUTTONS_TEXTURE, x, y,
-                        (float)(button.backgroundIndex * 18), 18.0F,
-                        18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+                        (float)(button.backgroundIndex * 18), 18.0F, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
             }
 
             if (button.itemId != null && !button.itemId.isEmpty()) {
@@ -291,8 +307,9 @@ public class GuiInvButtonEditor extends Screen {
             context.drawCenteredTextWithShadow(textRenderer, "Right Click empty space to add new", width / 2, 34, 0xFFAAAAAA);
         }
 
-        String snapText = "Grid Snap (S): " + (InventoryButtons.instance.gridSnap ? "ON" : "OFF");
-        int snapColor = InventoryButtons.instance.gridSnap ? 0xFF55FF55 : 0xFFAAAAAA;
+        // localGridSnap
+        String snapText = "Grid Snap (S): " + (this.localGridSnap ? "ON" : "OFF");
+        int snapColor = this.localGridSnap ? 0xFF55FF55 : 0xFFAAAAAA;
         context.drawTextWithShadow(textRenderer, snapText, 5, height - 15, snapColor);
 
         renderIOButtons(context, mouseX, mouseY);
@@ -439,8 +456,9 @@ public class GuiInvButtonEditor extends Screen {
             }
         }
 
-        int filterY = editorTop + 75;
-        int btnHeight = 20;
+        // --- Filter Buttons (ICONS) ---
+        int filterY = editorTop + 75; // Adjusted Y
+        int btnHeight = 20; // Increased height to fit items
         int totalWidth = editorWidth - 14;
         int btnWidth = totalWidth / FilterMode.values().length;
 
@@ -455,6 +473,7 @@ public class GuiInvButtonEditor extends Screen {
             context.fill(bx, filterY, bx + btnWidth, filterY + btnHeight, bgColor);
             context.drawBorder(bx, filterY, btnWidth, btnHeight, borderColor);
 
+            // Draw Item Icon centered
             context.drawItem(mode.icon, bx + (btnWidth - 16) / 2, filterY + (btnHeight - 16) / 2);
         }
 
@@ -463,21 +482,25 @@ public class GuiInvButtonEditor extends Screen {
         iconTextField.setY(editorTop + 112);
         iconTextField.render(context, mouseX, mouseY, delta);
 
+        // --- DYNAMIC LAYOUT FOR SKULL MODE ---
         int listY = editorTop + 135;
         int listH = 82;
 
         if (currentMode == FilterMode.SKULLS) {
+            // Show Add Skull Field and Info Icon
             String infoText = "Add Skull by ID";
             int titleX = editorLeft + 7;
             int titleY = editorTop + 135;
             context.drawText(textRenderer, infoText, titleX, titleY, 0xFFA0A0A0, false);
 
+            // Draw Info Icon next to the text
             int iconSize = 10;
             int infoIconX = titleX + textRenderer.getWidth(infoText) + 5;
             int infoIconY = titleY - 1;
 
             context.drawTexture(RenderLayer::getGuiTextured, INFO_ICON_TEXTURE, infoIconX, infoIconY, 0, 0, iconSize, iconSize, iconSize, iconSize);
 
+            // Highlight on hover
             if (mouseX >= infoIconX && mouseX < infoIconX + iconSize && mouseY >= infoIconY && mouseY < infoIconY + iconSize) {
                 context.fill(infoIconX, infoIconY, infoIconX + iconSize, infoIconY + iconSize, 0x40FFFFFF);
             }
@@ -486,6 +509,7 @@ public class GuiInvButtonEditor extends Screen {
             addSkullField.setY(editorTop + 147);
             addSkullField.render(context, mouseX, mouseY, delta);
 
+            // Shift List Down and Shrink
             listY = editorTop + 170;
             listH = 47;
         }
@@ -493,19 +517,22 @@ public class GuiInvButtonEditor extends Screen {
         renderIconList(context, mouseX, mouseY, listY, listH);
     }
 
+    // --- Info Panel with X button ---
     private void renderSkullInfoPanel(DrawContext context, int mouseX, int mouseY) {
         int panelW = 150;
-        int panelH = 190;
+        int panelH = 190; // Increased height
         int panelX = 10;
         int panelY = (this.height - panelH) / 2;
 
         context.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFF202020);
         context.drawBorder(panelX, panelY, panelW, panelH, 0xFF505050);
 
+        // Close Button (X)
         int closeSize = 10;
         int closeX = panelX + panelW - closeSize - 4;
         int closeY = panelY + 4;
 
+        // Hover effect for X button
         if (mouseX >= closeX && mouseX <= closeX + closeSize && mouseY >= closeY && mouseY <= closeY + closeSize) {
             context.fill(closeX, closeY, closeX + closeSize, closeY + closeSize, 0xFFFF0000);
         } else {
@@ -594,6 +621,7 @@ public class GuiInvButtonEditor extends Screen {
         searchedIcons.clear();
         String lower = query.toLowerCase().trim();
 
+        // Hardcoded Skulls
         if (currentMode == FilterMode.ALL || currentMode == FilterMode.SKULLS) {
             for (Map.Entry<String, String> entry : SKULL_ICONS.entrySet()) {
                 if (entry.getKey().toLowerCase().contains(lower)) {
@@ -602,8 +630,17 @@ public class GuiInvButtonEditor extends Screen {
                     searchedIcons.add(new ItemStackResult(skullStack));
                 }
             }
+            // NEW: Hypixel Skulls
+            synchronized (HypixelItemManager.SKULL_ITEMS) {
+                for (HypixelItemManager.HypixelItem hItem : HypixelItemManager.SKULL_ITEMS) {
+                    if (hItem.name().toLowerCase().contains(lower)) {
+                        searchedIcons.add(new HypixelResult(hItem));
+                    }
+                }
+            }
         }
 
+        // Custom Textures
         if (currentMode == FilterMode.ALL || currentMode == FilterMode.MISC) {
             for (Map.Entry<String, Identifier> entry : InventoryButtons.CUSTOM_TEXTURES.entrySet()) {
                 if (entry.getKey().toLowerCase().contains(lower)) {
@@ -612,6 +649,7 @@ public class GuiInvButtonEditor extends Screen {
             }
         }
 
+        // Vanilla Items
         if (currentMode == FilterMode.ALL || currentMode == FilterMode.ITEMS || currentMode == FilterMode.BLOCKS) {
             for (Item item : Registries.ITEM) {
                 boolean isBlock = item instanceof BlockItem;
@@ -626,11 +664,16 @@ public class GuiInvButtonEditor extends Screen {
             }
         }
 
-        searchedIcons.sort(Comparator.comparing(r -> {
-            String name = r.getDisplayName().toLowerCase();
-            if (name.startsWith(lower)) return "0" + name;
-            return "1" + name;
-        }));
+        searchedIcons.sort(
+            Comparator.comparing((IconResult r) -> {
+                    String name = r.getDisplayName().toLowerCase();
+                    return name.startsWith(lower) ? 0 : 1;
+                })
+                .thenComparingInt(r -> {
+                    return (r instanceof HypixelResult) ? 1 : 0;
+                })
+                .thenComparing(r -> r.getDisplayName().toLowerCase())
+        );
     }
 
     @Override
@@ -897,9 +940,13 @@ public class GuiInvButtonEditor extends Screen {
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
+    // --- Helper to check overlap ---
     private boolean isOverlapping(int x, int y) {
         for (InventoryButtons.CustomButtonData btn : InventoryButtons.instance.buttons) {
-            if (btn == editingButton) continue;
+            if (btn == editingButton) continue; // Don't check against self
+
+            // Simple distance check (since they are fixed size)
+            // If the top-left corners are within BUTTON_SIZE of each other, they overlap.
             if (Math.abs(btn.x - x) < BUTTON_SIZE && Math.abs(btn.y - y) < BUTTON_SIZE) {
                 return true;
             }
@@ -919,14 +966,15 @@ public class GuiInvButtonEditor extends Screen {
             if (editingButton.anchorRight) relativeX -= xSize;
             if (editingButton.anchorBottom) relativeY -= ySize;
 
-            int proposedX = editingButton.x;
+            int proposedX = editingButton.x; // Default to current if overlap prevents move
             int proposedY = editingButton.y;
 
-            if (InventoryButtons.instance.gridSnap) {
+            if (this.localGridSnap) {
                 boolean isOutsideX = (relativeX < 0) || (relativeX > xSize - BUTTON_SIZE);
                 boolean isOutsideY = (relativeY < 0) || (relativeY > ySize - BUTTON_SIZE);
 
                 if (!isOutsideX && !isOutsideY) {
+                    // INSIDE GUI ZONE
                     if (relativeY < 80) {
                         Point bestMatch = null;
                         double closestDistSq = Double.MAX_VALUE;
@@ -957,6 +1005,7 @@ public class GuiInvButtonEditor extends Screen {
                         }
                     }
                 } else {
+                    // OUTSIDE ZONE
                     if (relativeX < 0) {
                         int col = (relativeX + OUTER_PADDING) / OUTER_GRID_SIZE;
                         proposedX = -OUTER_PADDING - BUTTON_SIZE + (col * OUTER_GRID_SIZE);
@@ -984,16 +1033,24 @@ public class GuiInvButtonEditor extends Screen {
                     }
                 }
             } else {
+                // Free movement
                 proposedX = relativeX;
                 proposedY = relativeY;
 
+                // --- Prevent dragging into forbidden zones (Main Inventory & Left Column) ---
+
+                // Main Inventory (Bottom)
+                // Approx Bounds: x=[0, 176], y=[83, 166] (stops at GUI bottom edge)
                 boolean insideBottomZone = (relativeX + BUTTON_SIZE > 0 && relativeX < 176) &&
                         (relativeY + BUTTON_SIZE > 83 && relativeY < 166);
 
+                // Left Column (Armor/Offhand)
+                // Approx Bounds: x=[0, 26], y=[7, 83]
                 boolean insideLeftZone = (relativeX + BUTTON_SIZE > 0 && relativeX < 26) &&
                         (relativeY + BUTTON_SIZE > 7 && relativeY < 83);
 
                 if (insideBottomZone || insideLeftZone) {
+                    // Snap to nearest valid restricted slot
                     Point bestMatch = null;
                     double closestDistSq = Double.MAX_VALUE;
                     for (Point p : INVENTORY_FIXED_SLOTS) {
@@ -1010,6 +1067,7 @@ public class GuiInvButtonEditor extends Screen {
                 }
             }
 
+            // Only update if no overlap
             if (!isOverlapping(proposedX, proposedY)) {
                 editingButton.x = proposedX;
                 editingButton.y = proposedY;
@@ -1045,12 +1103,15 @@ public class GuiInvButtonEditor extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // Toggle Grid Snap
         boolean inputsFocused = isEditorOpen && (commandTextField.isFocused() || iconTextField.isFocused() || addSkullField.isFocused());
         if (keyCode == GLFW.GLFW_KEY_S && !inputsFocused) {
-            InventoryButtons.instance.gridSnap = !InventoryButtons.instance.gridSnap;
+            // CHANGED: Toggle local state only
+            this.localGridSnap = !this.localGridSnap;
             return true;
         }
 
+        // --- Save Panel Logic ---
         if (isSavePanelOpen) {
             if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
                 isSavePanelOpen = false;
