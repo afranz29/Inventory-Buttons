@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "com.panda.inventorybuttons.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"MixinHandledScreen",
+		"HandledScreenAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
