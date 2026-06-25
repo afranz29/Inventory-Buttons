@@ -90,7 +90,7 @@ public class GuiInvButtonMenu extends Screen {
                         mouseY >= btn.y && mouseY < btn.y + btn.height) {
 
                     if (this.client != null) {
-                        this.client.getSoundManager().play(PositionedSoundInstance.ui(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                        this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     }
                     btn.action.run();
                     return true;

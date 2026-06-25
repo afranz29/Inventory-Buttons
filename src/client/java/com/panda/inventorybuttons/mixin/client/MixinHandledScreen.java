@@ -177,7 +177,7 @@ public abstract class MixinHandledScreen extends Screen {
                         String cmd = btn.command;
                         if (cmd.startsWith("/")) cmd = cmd.substring(1);
                         this.client.player.networkHandler.sendChatCommand(cmd);
-                        this.client.getSoundManager().play(net.minecraft.client.sound.PositionedSoundInstance.ui(SoundEvents.UI_BUTTON_CLICK.value(), 1.0F));
+                        this.client.getSoundManager().play(net.minecraft.client.sound.PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     }
 
                     cir.setReturnValue(true);
