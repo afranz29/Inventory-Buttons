@@ -2,7 +2,7 @@
 
 A Fabric mod for Minecraft that brings the popular "Inventory Buttons" feature from [NotEnoughUpdates (NEU)](https://github.com/NotEnoughUpdates/NotEnoughUpdates) to modern versions of Minecraft.
 
-This mod is available for **1.21.11** and **1.21.5**
+This mod is available for **1.21.11**, **1.21.5**, and **26.3**!
 
 ## Features
 
@@ -12,15 +12,20 @@ This mod is available for **1.21.11** and **1.21.5**
 
 ## Installation
 
-### Install Fabric
+### Install Fabric Loader
 1. Download the Fabric Installer from the Fabric [download page](https://fabricmc.net/use/installer/)
 2. Open the installer and select the desired Minecraft version, loader version (latest recommended), and install location (default recommended).
 3. Press Install
 
-_For more information about installing Fabric_
+_For more information about Fabric visit [https://fabricmc.net/](https://fabricmc.net/)_
+
+### Install Fabric API
+_This mod requires Fabric API_
+1. Download Fabric API (mod) with the desired version from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/fabric-api/files/all) or [Modrinth](https://modrinth.com/mod/fabric-api)
+2. Place the downloaded `.jar` file into your `.minecraft/mods` folder.
 
 ### Install Inventory Buttons Mod
-1.  Download the latest `.jar` file from the [Releases](https://github.com/afranz29/Inventory-Buttons/releases) page.
+1. Download the `.jar` file with the matching version from the [Releases](https://github.com/afranz29/Inventory-Buttons/releases) page.
 2. Place the downloaded `.jar` file into your `.minecraft/mods` folder.
 3. Launch the game!
 
@@ -32,6 +37,7 @@ This mod is a derivative work based on **NotEnoughUpdates (NEU)**.
 * **Original Repository:** [NotEnoughUpdate](https://github.com/NotEnoughUpdates/NotEnoughUpdates)
 * **Assets & Design:** All textures and design concepts for the buttons and editor are the intellectual property of the NotEnoughUpdates contributors.
 
+Ported and maintained by Panda/afranz29.
 This port is not endorsed by, affiliated with, or supported by the official NotEnoughUpdates team. Please do not report bugs regarding this mod to the official NEU tracker.
 
 ## License

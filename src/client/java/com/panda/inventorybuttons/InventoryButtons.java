@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -9,12 +14,12 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ProfileComponent;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ResolvableProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +70,7 @@ public class InventoryButtons {
 	}
 
 	private static void registerCustom(String name, String fileName) {
-		CUSTOM_TEXTURES.put(name, Identifier.of("inventorybuttons", "textures/icons/custom/" + fileName + ".png"));
+		CUSTOM_TEXTURES.put(name, Identifier.fromNamespaceAndPath("inventorybuttons", "textures/icons/custom/" + fileName + ".png"));
 	}
 
 	public static class CustomButtonData {
@@ -85,7 +90,7 @@ public class InventoryButtons {
 			if (itemId.startsWith("skull:")) return getSkullStack(itemId);
 			try {
 				if (!itemId.contains(":")) return ItemStack.EMPTY;
-				return new ItemStack(Registries.ITEM.get(Identifier.of(itemId)));
+				return new ItemStack(BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId)));
 			} catch (Exception e) { return ItemStack.EMPTY; }
 		}
 
@@ -104,8 +109,8 @@ public class InventoryButtons {
 
 				GameProfile profile = new GameProfile(uuid, "Skull", properties);
 
-				ProfileComponent profileComponent = ProfileComponent.ofStatic(profile);
-				head.set(DataComponentTypes.PROFILE, profileComponent);
+				ResolvableProfile profileComponent = ResolvableProfile.createResolved(profile);
+				head.set(DataComponents.PROFILE, profileComponent);
 
 				return head;
 			} catch (Exception e) {

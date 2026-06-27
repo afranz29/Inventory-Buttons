@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons;
 
 import com.panda.inventorybuttons.gui.GuiInvButtonEditor;
@@ -6,14 +11,15 @@ import com.panda.inventorybuttons.util.HypixelItemManager;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 public class InventoryButtonsClient implements ClientModInitializer {
 
@@ -24,8 +30,10 @@ public class InventoryButtonsClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		InventoryButtons.load();
 
-		// Fetch Hypixel items in background
-		HypixelItemManager.loadAsync();
+		// Fetch Hypixel items in background after client has started
+		ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
+			HypixelItemManager.loadAsync();
+		});
 
 		// Register commands
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
@@ -64,9 +72,9 @@ public class InventoryButtonsClient implements ClientModInitializer {
 										}
 										if (matchedProfile != null) {
 											InventoryButtons.loadProfile(matchedProfile);
-											context.getSource().sendFeedback(Text.literal("Loaded profile: " + matchedProfile).formatted(Formatting.GREEN));
+											context.getSource().sendFeedback(Component.literal("Loaded profile: " + matchedProfile).withStyle(ChatFormatting.GREEN));
 										} else {
-											context.getSource().sendFeedback(Text.literal("Profile not found: " + name).formatted(Formatting.RED));
+											context.getSource().sendFeedback(Component.literal("Profile not found: " + name).withStyle(ChatFormatting.RED));
 										}
 										return 1;
 									})
@@ -108,9 +116,9 @@ public class InventoryButtonsClient implements ClientModInitializer {
 										}
 										if (matchedProfile != null) {
 											InventoryButtons.loadProfile(matchedProfile);
-											context.getSource().sendFeedback(Text.literal("Loaded profile: " + matchedProfile).formatted(Formatting.GREEN));
+											context.getSource().sendFeedback(Component.literal("Loaded profile: " + matchedProfile).withStyle(ChatFormatting.GREEN));
 										} else {
-											context.getSource().sendFeedback(Text.literal("Profile not found: " + name).formatted(Formatting.RED));
+											context.getSource().sendFeedback(Component.literal("Profile not found: " + name).withStyle(ChatFormatting.RED));
 										}
 										return 1;
 									})
@@ -135,10 +143,10 @@ public class InventoryButtonsClient implements ClientModInitializer {
 	}
 
 	private static void sendHelpMessage(net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource source, String commandPrefix) {
-		source.sendFeedback(Text.literal("--- Inventory Buttons Help ---").formatted(Formatting.GOLD));
-		source.sendFeedback(Text.literal("/" + commandPrefix + " - Opens the configuration menu").formatted(Formatting.YELLOW));
-		source.sendFeedback(Text.literal("/" + commandPrefix + " edit - Opens the button layout editor").formatted(Formatting.YELLOW));
-		source.sendFeedback(Text.literal("/" + commandPrefix + " profile <name> - Loads a saved button layout profile").formatted(Formatting.YELLOW));
-		source.sendFeedback(Text.literal("/" + commandPrefix + " help - Displays this help message").formatted(Formatting.YELLOW));
+		source.sendFeedback(Component.literal("--- Inventory Buttons Help ---").withStyle(ChatFormatting.GOLD));
+		source.sendFeedback(Component.literal("/" + commandPrefix + " - Opens the configuration menu").withStyle(ChatFormatting.YELLOW));
+		source.sendFeedback(Component.literal("/" + commandPrefix + " edit - Opens the button layout editor").withStyle(ChatFormatting.YELLOW));
+		source.sendFeedback(Component.literal("/" + commandPrefix + " profile <name> - Loads a saved button layout profile").withStyle(ChatFormatting.YELLOW));
+		source.sendFeedback(Component.literal("/" + commandPrefix + " help - Displays this help message").withStyle(ChatFormatting.YELLOW));
 	}
 }

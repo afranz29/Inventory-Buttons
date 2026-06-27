@@ -1,22 +1,27 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons.gui;
 
 import com.panda.inventorybuttons.InventoryButtons;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
 
 public class GuiInvButtonConfig extends Screen {
 
-    private static final Identifier TRASH_ICON = Identifier.of("inventorybuttons", "textures/gui/icons/delete_trashcan.png");
+    private static final Identifier TRASH_ICON = Identifier.fromNamespaceAndPath("inventorybuttons", "textures/gui/icons/delete_trashcan.png");
 
     private final Screen parent;
     private Tab currentTab = Tab.GENERAL;
@@ -26,7 +31,7 @@ public class GuiInvButtonConfig extends Screen {
     private final List<ConfigToggle> generalButtons = new ArrayList<>();
     private final List<ProfileButton> profileButtons = new ArrayList<>();
     private final List<ProfileButton> deleteButtons = new ArrayList<>();
-    private TextFieldWidget profileNameField;
+    private EditBox profileNameField;
     private ProfileButton profileSaveBtn;
 
     private final LerpingInteger profileScroll = new LerpingInteger(0, 0);
@@ -35,7 +40,7 @@ public class GuiInvButtonConfig extends Screen {
     private long statusEndTime = 0;
 
     public GuiInvButtonConfig(Screen parent) {
-        super(Text.literal("Configuration"));
+        super(Component.literal("Configuration"));
         this.parent = parent;
     }
 
@@ -71,16 +76,16 @@ public class GuiInvButtonConfig extends Screen {
                 () -> InventoryButtons.instance.gridSnap, v -> InventoryButtons.instance.gridSnap = v);
 
         int fieldW = 140;
-        this.profileNameField = new TextFieldWidget(this.textRenderer, boxX + 10, boxY + 42, fieldW, 16, Text.literal("Profile Name"));
+        this.profileNameField = new EditBox(this.font, boxX + 10, boxY + 42, fieldW, 16, Component.literal("Profile Name"));
         this.profileNameField.setMaxLength(32);
 
         this.profileSaveBtn = new ProfileButton(boxX + 10 + fieldW + 5, boxY + 42, 75, 16, "Save Profile", () -> {
-            String name = profileNameField.getText().trim();
+            String name = profileNameField.getValue().trim();
             if (!name.isEmpty()) {
                 InventoryButtons.saveProfile(name);
                 setStatus("Saved: " + name);
                 refreshProfileList();
-                profileNameField.setText("");
+                profileNameField.setValue("");
             }
         });
 
@@ -123,7 +128,7 @@ public class GuiInvButtonConfig extends Screen {
         this.statusEndTime = System.currentTimeMillis() + 3000;
     }
 
-    private void drawBorderLocal(DrawContext context, int x, int y, int w, int h, int color) {
+    private void drawBorderLocal(GuiGraphicsExtractor context, int x, int y, int w, int h, int color) {
         context.fill(x, y, x + w, y + 1, color);
         context.fill(x, y + h - 1, x + w, y + h, color);
         context.fill(x, y + 1, x + 1, y + h - 1, color);
@@ -131,16 +136,16 @@ public class GuiInvButtonConfig extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 
-        context.getMatrices().pushMatrix();
-        context.getMatrices().translate(this.width / 2.0f, boxY - 25);
+        context.pose().pushMatrix();
+        context.pose().translate(this.width / 2.0f, boxY - 25);
         float scale = 1.5f;
-        context.getMatrices().scale(scale, scale);
+        context.pose().scale(scale, scale);
         String titleText = "Configuration";
-        int tW = this.textRenderer.getWidth(titleText);
-        context.drawText(this.textRenderer, titleText, -tW / 2, -this.textRenderer.fontHeight / 2, 0xFFFFFFFF, true);
-        context.getMatrices().popMatrix();
+        int tW = this.font.width(titleText);
+        context.text(this.font, Component.literal(titleText), -tW / 2, -this.font.lineHeight / 2, 0xFFFFFFFF, true);
+        context.pose().popMatrix();
 
         context.fill(boxX, boxY, boxX + boxW, boxY + boxH, 0xAA000000);
         drawBorderLocal(context, boxX, boxY, boxW, boxH, 0xFF505050);
@@ -151,48 +156,48 @@ public class GuiInvButtonConfig extends Screen {
         boolean hoverGen = (mouseX >= boxX && mouseX < boxX + tabW && mouseY >= boxY && mouseY < boxY + tabH);
         int colorGen = (currentTab == Tab.GENERAL) ? 0xCC404040 : (hoverGen ? 0xAA303030 : 0x88202020);
         context.fill(boxX, boxY, boxX + tabW, boxY + tabH, colorGen);
-        context.drawCenteredTextWithShadow(textRenderer, "General", boxX + tabW / 2, boxY + 4, (currentTab == Tab.GENERAL) ? 0xFFFFFFFF : 0xFFAAAAAA);
+        context.centeredText(font, Component.literal("General"), boxX + tabW / 2, boxY + 4, (currentTab == Tab.GENERAL) ? 0xFFFFFFFF : 0xFFAAAAAA);
 
         boolean hoverProf = (mouseX >= boxX + tabW && mouseX < boxX + boxW && mouseY >= boxY && mouseY < boxY + tabH);
         int colorProf = (currentTab == Tab.PROFILES) ? 0xCC404040 : (hoverProf ? 0xAA303030 : 0x88202020);
         context.fill(boxX + tabW, boxY, boxX + boxW, boxY + tabH, colorProf);
-        context.drawCenteredTextWithShadow(textRenderer, "Profiles", boxX + tabW + tabW / 2, boxY + 4, (currentTab == Tab.PROFILES) ? 0xFFFFFFFF : 0xFFAAAAAA);
+        context.centeredText(font, Component.literal("Profiles"), boxX + tabW + tabW / 2, boxY + 4, (currentTab == Tab.PROFILES) ? 0xFFFFFFFF : 0xFFAAAAAA);
 
         context.fill(boxX, boxY + tabH, boxX + boxW, boxY + tabH + 1, 0xFF808080);
 
         if (currentTab == Tab.GENERAL) {
-            renderGeneral(context, mouseX, mouseY);
+            extractGeneralState(context, mouseX, mouseY);
         } else {
-            renderProfiles(context, mouseX, mouseY);
+            extractProfilesState(context, mouseX, mouseY);
         }
     }
 
-    private void renderGeneral(DrawContext context, int mouseX, int mouseY) {
+    private void extractGeneralState(GuiGraphicsExtractor context, int mouseX, int mouseY) {
         for (ConfigToggle btn : generalButtons) {
-            context.drawTextWithShadow(textRenderer, btn.label, btn.labelX, btn.y + 4, 0xFFFFFFFF);
+            context.text(font, Component.literal(btn.label), btn.labelX, btn.y + 4, 0xFFFFFFFF, true);
             boolean isHovered = mouseX >= btn.btnX && mouseX < btn.btnX + btn.btnW && mouseY >= btn.y && mouseY < btn.y + btn.btnH;
             int bgColor = isHovered ? 0xA0000000 : 0x80000000;
             context.fill(btn.btnX, btn.y, btn.btnX + btn.btnW, btn.y + btn.btnH, bgColor);
             boolean state = btn.getter.get();
             String stateTxt = state ? "ON" : "OFF";
             int color = state ? 0xFF55FF55 : 0xFFFF5555;
-            int txtW = textRenderer.getWidth(stateTxt);
-            context.drawText(textRenderer, stateTxt, btn.btnX + (btn.btnW - txtW) / 2, btn.y + 4, color, false);
+            int txtW = font.width(stateTxt);
+            context.text(font, Component.literal(stateTxt), btn.btnX + (btn.btnW - txtW) / 2, btn.y + 4, color, false);
         }
     }
 
-    private void renderProfiles(DrawContext context, int mouseX, int mouseY) {
-        context.drawTextWithShadow(textRenderer, "Profile Name", boxX + 10, boxY + 30, 0xFFA0A0A0);
-        this.profileNameField.render(context, mouseX, mouseY, 0);
+    private void extractProfilesState(GuiGraphicsExtractor context, int mouseX, int mouseY) {
+        context.text(font, Component.literal("Profile Name"), boxX + 10, boxY + 30, 0xFFA0A0A0, true);
+        this.profileNameField.extractRenderState(context, mouseX, mouseY, 0);
 
         ProfileButton saveBtn = this.profileSaveBtn;
         boolean hoverSave = mouseX >= saveBtn.x && mouseX < saveBtn.x + saveBtn.w && mouseY >= saveBtn.y && mouseY < saveBtn.y + saveBtn.h;
         context.fill(saveBtn.x, saveBtn.y, saveBtn.x + saveBtn.w, saveBtn.y + saveBtn.h, hoverSave ? 0xA0000000 : 0x80000000);
-        int saveTW = textRenderer.getWidth(saveBtn.label);
-        context.drawText(textRenderer, saveBtn.label, saveBtn.x + (saveBtn.w - saveTW) / 2, saveBtn.y + 4, 0xFFFFFFFF, false);
+        int saveTW = font.width(saveBtn.label);
+        context.text(font, Component.literal(saveBtn.label), saveBtn.x + (saveBtn.w - saveTW) / 2, saveBtn.y + 4, 0xFFFFFFFF, false);
 
         if (System.currentTimeMillis() < statusEndTime) {
-            context.drawTextWithShadow(textRenderer, statusText, boxX + 10, boxY + boxH - 12, 0xFF55FF55);
+            context.text(font, Component.literal(statusText), boxX + 10, boxY + boxH - 12, 0xFF55FF55, true);
         }
 
         int listY = boxY + 70;
@@ -219,13 +224,13 @@ public class GuiInvButtonConfig extends Screen {
             if (mouseY < listY || mouseY > listY + listH) isHovered = false;
 
             context.fill(btn.x, drawY, btn.x + btn.w, drawY + btn.h, isHovered ? 0xA0000000 : 0x80000000);
-            context.drawText(textRenderer, btn.label, btn.x + 5, drawY + 5, 0xFFFFFFFF, false);
+            context.text(font, Component.literal(btn.label), btn.x + 5, drawY + 5, 0xFFFFFFFF, false);
 
             boolean isDelHovered = mouseX >= delBtn.x && mouseX < delBtn.x + delBtn.w && mouseY >= drawY && mouseY < drawY + delBtn.h;
             if (mouseY < listY || mouseY > listY + listH) isDelHovered = false;
 
             context.fill(delBtn.x, drawY, delBtn.x + delBtn.w, drawY + delBtn.h, isDelHovered ? 0xA0000000 : 0x80000000);
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, TRASH_ICON, delBtn.x + 1, drawY + 1, 0, 0, 16, 16, 16, 16);
+            context.blit(RenderPipelines.GUI_TEXTURED, TRASH_ICON, delBtn.x + 1, drawY + 1, 0, 0, 16, 16, 16, 16);
 
             currentY += btn.h + 2;
         }
@@ -244,7 +249,7 @@ public class GuiInvButtonConfig extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubled) {
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.button();
@@ -255,12 +260,12 @@ public class GuiInvButtonConfig extends Screen {
                 if (mouseX >= boxX && mouseX < boxX + tabW) {
                     currentTab = Tab.GENERAL;
                     if(profileNameField != null) profileNameField.setFocused(false);
-                    if(this.client != null) this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    if(this.minecraft != null) this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;
                 }
                 if (mouseX >= boxX + tabW && mouseX < boxX + boxW) {
                     currentTab = Tab.PROFILES;
-                    if(this.client != null) this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    if(this.minecraft != null) this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;
                 }
             }
@@ -269,7 +274,7 @@ public class GuiInvButtonConfig extends Screen {
                 for (ConfigToggle btn : generalButtons) {
                     if (mouseX >= btn.btnX && mouseX < btn.btnX + btn.btnW && mouseY >= btn.y && mouseY < btn.y + btn.btnH) {
                         btn.setter.accept(!btn.getter.get());
-                        if(this.client != null) this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                        if(this.minecraft != null) this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                         return true;
                     }
                 }
@@ -280,7 +285,7 @@ public class GuiInvButtonConfig extends Screen {
 
                 if (mouseX >= profileSaveBtn.x && mouseX < profileSaveBtn.x + profileSaveBtn.w && mouseY >= profileSaveBtn.y && mouseY < profileSaveBtn.y + profileSaveBtn.h) {
                     profileSaveBtn.action.run();
-                    if(this.client != null) this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    if(this.minecraft != null) this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;
                 }
 
@@ -294,13 +299,13 @@ public class GuiInvButtonConfig extends Screen {
 
                         if (mouseX >= btn.x && mouseX < btn.x + btn.w && mouseY >= currentY && mouseY < currentY + btn.h) {
                             btn.action.run();
-                            if(this.client != null) this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                            if(this.minecraft != null) this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                             return true;
                         }
 
                         if (mouseX >= delBtn.x && mouseX < delBtn.x + delBtn.w && mouseY >= currentY && mouseY < currentY + delBtn.h) {
                             delBtn.action.run();
-                            if(this.client != null) this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                            if(this.minecraft != null) this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                             return true;
                         }
                         currentY += btn.h + 2;
@@ -329,9 +334,9 @@ public class GuiInvButtonConfig extends Screen {
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent input) {
         if (input.key() == GLFW.GLFW_KEY_ESCAPE && !profileNameField.isFocused()) {
-            this.close();
+            this.onClose();
             return true;
         }
         if (currentTab == Tab.PROFILES && profileNameField.isFocused()) {
@@ -341,7 +346,7 @@ public class GuiInvButtonConfig extends Screen {
     }
 
     @Override
-    public boolean charTyped(net.minecraft.client.input.CharInput input) {
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent input) {
         if (currentTab == Tab.PROFILES && profileNameField.isFocused()) {
             if (profileNameField.charTyped(input)) return true;
         }
@@ -349,9 +354,9 @@ public class GuiInvButtonConfig extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         InventoryButtons.save();
-        if (this.client != null) this.client.setScreen(parent);
+        if (this.minecraft != null) this.minecraft.setScreen(parent);
     }
 
     interface BooleanSupplier { boolean get(); }

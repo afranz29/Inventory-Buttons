@@ -1,15 +1,11 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons.mixin.client;
 
 import com.panda.inventorybuttons.InventoryButtons;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
-import net.minecraft.item.ItemStack;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,31 +13,40 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Map;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.item.ItemStack;
 
-@Mixin(HandledScreen.class)
+@Mixin(AbstractContainerScreen.class)
 public abstract class MixinHandledScreen extends Screen {
 
-    private static final Identifier BUTTONS_TEXTURE = Identifier.of("inventorybuttons", "textures/gui/buttons.png");
+    private static final Identifier BUTTONS_TEXTURE = Identifier.fromNamespaceAndPath("inventorybuttons", "textures/gui/buttons.png");
     private static final int STANDARD_INV_HEIGHT = 166;
     private static final int STANDARD_INV_WIDTH = 176;
 
-    protected MixinHandledScreen(Text title) { super(title); }
+    protected MixinHandledScreen(Component title) { super(title); }
 
-    private void drawBorderLocal(DrawContext context, int x, int y, int w, int h, int color) {
+    private void drawBorderLocal(GuiGraphicsExtractor context, int x, int y, int w, int h, int color) {
         context.fill(x, y, x + w, y + 1, color);
         context.fill(x, y + h - 1, x + w, y + h, color);
         context.fill(x, y + 1, x + 1, y + h - 1, color);
         context.fill(x + w - 1, y + 1, x + w, y + h - 1, color);
     }
 
-    // FIX: Inject into drawMouseoverTooltip so our buttons render AFTER the Recipe Book!
-    @Inject(method = "drawMouseoverTooltip", at = @At("HEAD"))
-    private void renderInvButtons(DrawContext context, int x, int y, CallbackInfo ci) {
-        if (!((Object)this instanceof HandledScreen)) return;
+    // FIX: Inject into extractTooltip so our buttons render AFTER the Recipe Book!
+    @Inject(method = "extractTooltip", at = @At("HEAD"))
+    private void renderInvButtons(GuiGraphicsExtractor context, int x, int y, CallbackInfo ci) {
+        if (!((Object)this instanceof AbstractContainerScreen)) return;
 
         if (!InventoryButtons.instance.enabled) return;
 
-        if (InventoryButtons.instance.hideInCreative && this.client != null && this.client.interactionManager != null && this.client.interactionManager.getCurrentGameMode().isCreative()) {
+        if (InventoryButtons.instance.hideInCreative && this.minecraft != null && this.minecraft.gameMode != null && this.minecraft.gameMode.getPlayerMode().isCreative()) {
             return;
         }
 
@@ -84,7 +89,7 @@ public abstract class MixinHandledScreen extends Screen {
             if (btn.anchorRight) btnX += xSize;
             if (btn.anchorBottom) btnY += ySize;
 
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, btnX, btnY, (float)(btn.backgroundIndex * 18), 18.0f, 18, 18, 90, 36);
+            context.blit(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, btnX, btnY, (float)(btn.backgroundIndex * 18), 18.0f, 18, 18, 90, 36);
 
             Identifier customTex = null;
             if (btn.itemId != null) {
@@ -97,11 +102,11 @@ public abstract class MixinHandledScreen extends Screen {
             }
 
             if (customTex != null) {
-                context.drawTexture(RenderPipelines.GUI_TEXTURED, customTex, btnX + 1, btnY + 1, 0.0f, 0.0f, 16, 16, 16, 16);
+                context.blit(RenderPipelines.GUI_TEXTURED, customTex, btnX + 1, btnY + 1, 0.0f, 0.0f, 16, 16, 16, 16);
             } else {
                 ItemStack stack = btn.getItemStack();
-                if (!stack.isEmpty()) context.drawItem(stack, btnX + 1, btnY + 1);
-                else context.drawCenteredTextWithShadow(textRenderer, "?", btnX + 9, btnY + 5, 0xFFFFFFFF);
+                if (!stack.isEmpty()) context.item(stack, btnX + 1, btnY + 1);
+                else context.centeredText(font, Component.literal("?"), btnX + 9, btnY + 5, 0xFFFFFFFF);
             }
 
             if (mouseX >= btnX && mouseX <= btnX + 18 && mouseY >= btnY && mouseY <= btnY + 18) {
@@ -121,24 +126,24 @@ public abstract class MixinHandledScreen extends Screen {
             drawBorderLocal(context, finalX, finalY, 18, 18, 0xFFFFFFFF);
 
             if (InventoryButtons.instance.showTooltips) {
-                context.drawTooltip(textRenderer, Text.literal(hoveredBtn.command), mouseX, mouseY);
+                context.setTooltipForNextFrame(font, Component.literal(hoveredBtn.command), mouseX, mouseY);
             }
         }
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onMouseClicked(net.minecraft.client.gui.Click click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
+    private void onMouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
         if (!InventoryButtons.instance.enabled) return;
 
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.button();
 
-        if (InventoryButtons.instance.hideInCreative && this.client != null && this.client.interactionManager != null && this.client.interactionManager.getCurrentGameMode().isCreative()) {
+        if (InventoryButtons.instance.hideInCreative && this.minecraft != null && this.minecraft.gameMode != null && this.minecraft.gameMode.getPlayerMode().isCreative()) {
             return;
         }
 
-        if (button == 0 && (Object)this instanceof HandledScreen) {
+        if (button == 0 && (Object)this instanceof AbstractContainerScreen) {
             HandledScreenAccessor accessor = (HandledScreenAccessor) this;
             int guiLeft = accessor.getXPosition();
             int guiTop = accessor.getYPosition();
@@ -173,11 +178,11 @@ public abstract class MixinHandledScreen extends Screen {
                 if (btn.anchorBottom) btnY += ySize;
 
                 if (mouseX >= btnX && mouseX <= btnX + 18 && mouseY >= btnY && mouseY <= btnY + 18) {
-                    if (this.client != null && this.client.player != null) {
+                    if (this.minecraft != null && this.minecraft.player != null) {
                         String cmd = btn.command;
                         if (cmd.startsWith("/")) cmd = cmd.substring(1);
-                        this.client.player.networkHandler.sendChatCommand(cmd);
-                        this.client.getSoundManager().play(net.minecraft.client.sound.PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                        this.minecraft.player.connection.sendCommand(cmd);
+                        this.minecraft.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     }
 
                     cir.setReturnValue(true);

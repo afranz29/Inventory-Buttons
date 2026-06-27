@@ -1,11 +1,16 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons.gui;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Util;
 
 import java.io.File;
@@ -18,7 +23,7 @@ public class GuiInvButtonMenu extends Screen {
     private final List<MenuButton> menuButtons = new ArrayList<>();
 
     public GuiInvButtonMenu() {
-        super(Text.literal("Inventory Buttons"));
+        super(Component.literal("Inventory Buttons"));
     }
 
     @Override
@@ -32,14 +37,14 @@ public class GuiInvButtonMenu extends Screen {
         int centerX = this.width / 2 - btnWidth / 2;
 
         menuButtons.add(new MenuButton(centerX, startY, btnWidth, btnHeight, "Config", () -> {
-            if (this.client != null) {
-                this.client.setScreen(new GuiInvButtonConfig(this));
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(new GuiInvButtonConfig(this));
             }
         }));
 
         menuButtons.add(new MenuButton(centerX, startY + spacing, btnWidth, btnHeight, "Edit Buttons", () -> {
-            if (this.client != null) {
-                this.client.setScreen(new GuiInvButtonEditor(this));
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(new GuiInvButtonEditor(this));
             }
         }));
 
@@ -49,20 +54,20 @@ public class GuiInvButtonMenu extends Screen {
             if (!file.exists()) {
                 file.mkdirs();
             }
-            Util.getOperatingSystem().open(file);
+            Util.getPlatform().openFile(file);
         }));
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        context.getMatrices().pushMatrix();
-        context.getMatrices().translate(this.width / 2.0f, 60.0f);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        context.pose().pushMatrix();
+        context.pose().translate(this.width / 2.0f, 60.0f);
         float scale = 2.0f;
-        context.getMatrices().scale(scale, scale);
+        context.pose().scale(scale, scale);
 
-        int titleWidth = this.textRenderer.getWidth(this.title);
-        context.drawText(this.textRenderer, this.title, -titleWidth / 2, -this.textRenderer.fontHeight / 2, 0xFFFFFFFF, true);
-        context.getMatrices().popMatrix();
+        int titleWidth = this.font.width(this.title);
+        context.text(this.font, this.title, -titleWidth / 2, -this.font.lineHeight / 2, 0xFFFFFFFF, true);
+        context.pose().popMatrix();
 
         for (MenuButton btn : menuButtons) {
             boolean isHovered = mouseX >= btn.x && mouseX < btn.x + btn.width &&
@@ -71,15 +76,15 @@ public class GuiInvButtonMenu extends Screen {
             int color = isHovered ? 0xA0000000 : 0x80000000;
             context.fill(btn.x, btn.y, btn.x + btn.width, btn.y + btn.height, color);
 
-            int textWidth = this.textRenderer.getWidth(btn.label);
+            int textWidth = this.font.width(btn.label);
             int textX = btn.x + (btn.width - textWidth) / 2;
-            int textY = btn.y + (btn.height - this.textRenderer.fontHeight) / 2;
-            context.drawText(this.textRenderer, btn.label, textX, textY, 0xFFFFFFFF, false);
+            int textY = btn.y + (btn.height - this.font.lineHeight) / 2;
+            context.text(this.font, Component.literal(btn.label), textX, textY, 0xFFFFFFFF, false);
         }
     }
 
     @Override
-    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubled) {
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.button();
@@ -89,8 +94,8 @@ public class GuiInvButtonMenu extends Screen {
                 if (mouseX >= btn.x && mouseX < btn.x + btn.width &&
                         mouseY >= btn.y && mouseY < btn.y + btn.height) {
 
-                    if (this.client != null) {
-                        this.client.getSoundManager().play(PositionedSoundInstance.master(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    if (this.minecraft != null) {
+                        this.minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     }
                     btn.action.run();
                     return true;

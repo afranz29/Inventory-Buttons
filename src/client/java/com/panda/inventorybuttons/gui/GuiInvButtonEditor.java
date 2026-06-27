@@ -1,34 +1,39 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons.gui;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.panda.inventorybuttons.InventoryButtons;
 import com.panda.inventorybuttons.util.HypixelItemManager;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.awt.Point;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public class GuiInvButtonEditor extends Screen {
 
-    private static final Identifier INVENTORY_TEXTURE = Identifier.of("minecraft", "textures/gui/container/inventory.png");
-    private static final Identifier BUTTONS_TEXTURE = Identifier.of("inventorybuttons", "textures/gui/buttons.png");
-    private static final Identifier INFO_ICON_TEXTURE = Identifier.of("inventorybuttons", "textures/gui/icons/info.png");
+    private static final Identifier INVENTORY_TEXTURE = Identifier.fromNamespaceAndPath("minecraft", "textures/gui/container/inventory.png");
+    private static final Identifier BUTTONS_TEXTURE = Identifier.fromNamespaceAndPath("inventorybuttons", "textures/gui/buttons.png");
+    private static final Identifier INFO_ICON_TEXTURE = Identifier.fromNamespaceAndPath("inventorybuttons", "textures/gui/icons/info.png");
 
     private static final int TEXTURE_WIDTH = 90;
     private static final int TEXTURE_HEIGHT = 36;
@@ -106,32 +111,32 @@ public class GuiInvButtonEditor extends Screen {
     private FilterMode currentMode = FilterMode.ALL;
 
     private interface IconResult {
-        void render(DrawContext context, int x, int y);
+        void extractRenderState(GuiGraphicsExtractor context, int x, int y);
         String getDisplayName();
         String getConfigId();
     }
 
     private record ItemStackResult(ItemStack stack) implements IconResult {
         @Override
-        public void render(DrawContext context, int x, int y) {
-            context.drawItem(stack, x, y);
+        public void extractRenderState(GuiGraphicsExtractor context, int x, int y) {
+            context.item(stack, x, y);
         }
         @Override
-        public String getDisplayName() { return stack.getName().getString(); }
+        public String getDisplayName() { return stack.getHoverName().getString(); }
         @Override
         public String getConfigId() {
-            if (stack.getItem() == net.minecraft.item.Items.PLAYER_HEAD) {
-                String name = stack.getName().getString();
+            if (stack.getItem() == net.minecraft.world.item.Items.PLAYER_HEAD) {
+                String name = stack.getHoverName().getString();
                 if (SKULL_ICONS.containsKey(name)) return SKULL_ICONS.get(name);
             }
-            return Registries.ITEM.getId(stack.getItem()).toString();
+            return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
         }
     }
 
     private record TextureResult(String name, Identifier textureId) implements IconResult {
         @Override
-        public void render(DrawContext context, int x, int y) {
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, textureId, x, y, 0.0f, 0.0f, 16, 16, 16, 16);
+        public void extractRenderState(GuiGraphicsExtractor context, int x, int y) {
+            context.blit(RenderPipelines.GUI_TEXTURED, textureId, x, y, 0.0f, 0.0f, 16, 16, 16, 16);
         }
         @Override
         public String getDisplayName() { return name; }
@@ -141,8 +146,8 @@ public class GuiInvButtonEditor extends Screen {
 
     private record HypixelResult(HypixelItemManager.HypixelItem item) implements IconResult {
         @Override
-        public void render(DrawContext context, int x, int y) {
-            context.drawItem(item.iconStack(), x, y);
+        public void extractRenderState(GuiGraphicsExtractor context, int x, int y) {
+            context.item(item.iconStack(), x, y);
         }
         @Override
         public String getDisplayName() { return item.name(); }
@@ -162,16 +167,16 @@ public class GuiInvButtonEditor extends Screen {
     private boolean isInfoPanelOpen = false;
 
     private boolean isSavePanelOpen = false;
-    private TextFieldWidget saveProfileField;
+    private EditBox saveProfileField;
 
     private final int editorWidth = 150;
     private final int editorHeight = 224;
     private int editorLeft;
     private int editorTop;
 
-    private TextFieldWidget commandTextField;
-    private TextFieldWidget iconTextField;
-    private TextFieldWidget addSkullField;
+    private EditBox commandTextField;
+    private EditBox iconTextField;
+    private EditBox addSkullField;
 
     private InventoryButtons.CustomButtonData editingButton = null;
 
@@ -184,7 +189,7 @@ public class GuiInvButtonEditor extends Screen {
     private boolean localGridSnap;
 
     public GuiInvButtonEditor(Screen parent) {
-        super(Text.literal("NEU Button Editor Port"));
+        super(Component.literal("NEU Button Editor Port"));
         this.parent = parent;
         this.localGridSnap = InventoryButtons.instance.gridSnap;
     }
@@ -194,37 +199,37 @@ public class GuiInvButtonEditor extends Screen {
         this.guiLeft = (this.width - xSize) / 2;
         this.guiTop = (this.height - ySize) / 2;
 
-        this.commandTextField = new TextFieldWidget(this.textRenderer, 0, 0, editorWidth - 14, 16, Text.literal("Command"));
+        this.commandTextField = new EditBox(this.font, 0, 0, editorWidth - 14, 16, Component.literal("Command"));
         this.commandTextField.setMaxLength(256);
-        this.commandTextField.setChangedListener(s -> {
+        this.commandTextField.setResponder(s -> {
             if (editingButton != null) {
                 String text = s;
                 if (text.isEmpty()) {
                     text = "/";
-                    commandTextField.setText(text);
-                    commandTextField.setCursor(1, false);
+                    commandTextField.setValue(text);
+                    commandTextField.moveCursorTo(1, false);
                 } else if (!text.startsWith("/")) {
                     text = "/" + text.replace("/", "");
-                    commandTextField.setText(text);
-                    commandTextField.setCursor(text.length(), false);
+                    commandTextField.setValue(text);
+                    commandTextField.moveCursorTo(text.length(), false);
                 }
                 editingButton.command = text;
             }
         });
 
-        this.iconTextField = new TextFieldWidget(this.textRenderer, 0, 0, editorWidth - 14, 16, Text.literal("Icon"));
+        this.iconTextField = new EditBox(this.font, 0, 0, editorWidth - 14, 16, Component.literal("Icon"));
         this.iconTextField.setMaxLength(256);
-        this.iconTextField.setChangedListener(this::search);
+        this.iconTextField.setResponder(this::search);
 
-        this.addSkullField = new TextFieldWidget(this.textRenderer, 0, 0, editorWidth - 14, 16, Text.literal("Skull ID"));
+        this.addSkullField = new EditBox(this.font, 0, 0, editorWidth - 14, 16, Component.literal("Skull ID"));
         this.addSkullField.setMaxLength(512);
-        this.addSkullField.setChangedListener(s -> {
+        this.addSkullField.setResponder(s -> {
             if (editingButton != null && !s.isEmpty()) {
                 editingButton.itemId = s;
             }
         });
 
-        this.saveProfileField = new TextFieldWidget(this.textRenderer, 0, 0, 140, 20, Text.literal("Profile Name"));
+        this.saveProfileField = new EditBox(this.font, 0, 0, 140, 20, Component.literal("Profile Name"));
         this.saveProfileField.setMaxLength(32);
 
         search("");
@@ -245,7 +250,7 @@ public class GuiInvButtonEditor extends Screen {
         if (editorTop < 0) editorTop = 5;
     }
 
-    private void drawBorderLocal(DrawContext context, int x, int y, int w, int h, int color) {
+    private void drawBorderLocal(GuiGraphicsExtractor context, int x, int y, int w, int h, int color) {
         context.fill(x, y, x + w, y + 1, color);
         context.fill(x, y + h - 1, x + w, y + h, color);
         context.fill(x, y + 1, x + 1, y + h - 1, color);
@@ -253,12 +258,12 @@ public class GuiInvButtonEditor extends Screen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
 
         guiLeft = (this.width - xSize) / 2;
         guiTop = (this.height - ySize) / 2;
 
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, guiLeft, guiTop, 0.0f, 0.0f, xSize, ySize, 256, 256);
+        context.blit(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, guiLeft, guiTop, 0.0f, 0.0f, xSize, ySize, 256, 256);
 
         for (InventoryButtons.CustomButtonData button : InventoryButtons.instance.buttons) {
             int x = guiLeft + button.x;
@@ -270,7 +275,7 @@ public class GuiInvButtonEditor extends Screen {
                 context.fill(x, y, x + 18, y + 18, 0x8000FF00);
                 drawBorderLocal(context, x, y, 18, 18, 0xFFFFFFFF);
             } else {
-                context.drawTexture(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, x, y, (float)(button.backgroundIndex * 18), 18.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+                context.blit(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, x, y, (float)(button.backgroundIndex * 18), 18.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
             }
 
             if (button.itemId != null && !button.itemId.isEmpty()) {
@@ -283,35 +288,35 @@ public class GuiInvButtonEditor extends Screen {
                 }
 
                 if (customTex != null) {
-                    context.drawTexture(RenderPipelines.GUI_TEXTURED, customTex, x + 1, y + 1, 0.0f, 0.0f, 16, 16, 16, 16);
+                    context.blit(RenderPipelines.GUI_TEXTURED, customTex, x + 1, y + 1, 0.0f, 0.0f, 16, 16, 16, 16);
                 } else {
                     ItemStack stack = button.getItemStack();
                     if (!stack.isEmpty()) {
-                        context.drawItem(stack, x + 1, y + 1);
+                        context.item(stack, x + 1, y + 1);
                     }
                 }
             } else {
-                context.drawCenteredTextWithShadow(textRenderer, "?", x + 9, y + 5, 0xFFFFFFFF);
+                context.centeredText(font, Component.literal("?"), x + 9, y + 5, 0xFFFFFFFF);
             }
         }
 
         if (editingButton != null && isEditorOpen) {
             updateEditorCoordinates();
-            context.getMatrices().pushMatrix();
-            context.getMatrices().translate(0.0f, 0.0f);
+            context.pose().pushMatrix();
+            context.pose().translate(0.0f, 0.0f);
             renderEditorPanel(context, mouseX, mouseY, delta);
-            context.getMatrices().popMatrix();
+            context.pose().popMatrix();
         }
 
         if (editingButton == null) {
-            context.drawCenteredTextWithShadow(textRenderer, "Click to select/drag, Click again to edit", width / 2, 10, 0xFFFFFFFF);
-            context.drawCenteredTextWithShadow(textRenderer, "Backspace while selected to delete", width / 2, 22, 0xFFAAAAAA);
-            context.drawCenteredTextWithShadow(textRenderer, "Right Click empty space to add new", width / 2, 34, 0xFFAAAAAA);
+            context.centeredText(font, Component.literal("Click to select/drag, Click again to edit"), width / 2, 10, 0xFFFFFFFF);
+            context.centeredText(font, Component.literal("Backspace while selected to delete"), width / 2, 22, 0xFFAAAAAA);
+            context.centeredText(font, Component.literal("Right Click empty space to add new"), width / 2, 34, 0xFFAAAAAA);
         }
 
         String snapText = "Grid Snap (S): " + (this.localGridSnap ? "ON" : "OFF");
         int snapColor = this.localGridSnap ? 0xFF55FF55 : 0xFFAAAAAA;
-        context.drawTextWithShadow(textRenderer, snapText, 5, height - 15, snapColor);
+        context.text(font, Component.literal(snapText), 5, height - 15, snapColor, false);
 
         renderIOButtons(context, mouseX, mouseY);
 
@@ -320,14 +325,14 @@ public class GuiInvButtonEditor extends Screen {
         }
 
         if (isSavePanelOpen) {
-            context.getMatrices().pushMatrix();
-            context.getMatrices().translate(0.0f, 0.0f);
+            context.pose().pushMatrix();
+            context.pose().translate(0.0f, 0.0f);
             renderSaveProfilePanel(context, mouseX, mouseY, delta);
-            context.getMatrices().popMatrix();
+            context.pose().popMatrix();
         }
     }
 
-    private void renderIOButtons(DrawContext context, int mouseX, int mouseY) {
+    private void renderIOButtons(GuiGraphicsExtractor context, int mouseX, int mouseY) {
         int btnH = 20;
         int spacing = 5;
         int startX = 10;
@@ -338,28 +343,28 @@ public class GuiInvButtonEditor extends Screen {
         boolean hoverSave = mouseX >= startX && mouseX <= startX + saveW && mouseY >= saveY && mouseY <= saveY + btnH;
         context.fill(startX, saveY, startX + saveW, saveY + btnH, hoverSave ? 0xFF606060 : 0xFF404040);
         drawBorderLocal(context, startX, saveY, saveW, btnH, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, "Save as Profile", startX + saveW / 2, saveY + 6, 0xFFFFFFFF);
+        context.centeredText(font, Component.literal("Save as Profile"), startX + saveW / 2, saveY + 6, 0xFFFFFFFF);
 
         int exportW = 50;
         int exportY = saveY + btnH + spacing;
         boolean hoverExport = mouseX >= startX && mouseX <= startX + exportW && mouseY >= exportY && mouseY <= exportY + btnH;
         context.fill(startX, exportY, startX + exportW, exportY + btnH, hoverExport ? 0xFF606060 : 0xFF404040);
         drawBorderLocal(context, startX, exportY, exportW, btnH, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, "Export", startX + exportW / 2, exportY + 6, 0xFFFFFFFF);
+        context.centeredText(font, Component.literal("Export"), startX + exportW / 2, exportY + 6, 0xFFFFFFFF);
 
         int importW = 50;
         int importY = exportY + btnH + spacing;
         boolean hoverImport = mouseX >= startX && mouseX <= startX + importW && mouseY >= importY && mouseY <= importY + btnH;
         context.fill(startX, importY, startX + importW, importY + btnH, hoverImport ? 0xFF606060 : 0xFF404040);
         drawBorderLocal(context, startX, importY, importW, btnH, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, "Import", startX + importW / 2, importY + 6, 0xFFFFFFFF);
+        context.centeredText(font, Component.literal("Import"), startX + importW / 2, importY + 6, 0xFFFFFFFF);
 
         if (System.currentTimeMillis() < actionStatusEndTime) {
-            context.drawTextWithShadow(textRenderer, actionStatusText, startX + saveW + 5, startY + 6, 0xFF55FF55);
+            context.text(font, Component.literal(actionStatusText), startX + saveW + 5, startY + 6, 0xFF55FF55, false);
         }
     }
 
-    private void renderSaveProfilePanel(DrawContext context, int mouseX, int mouseY, float delta) {
+    private void renderSaveProfilePanel(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         context.fillGradient(0, 0, this.width, this.height, 0xAA000000, 0xAA000000);
 
         int panelW = 200;
@@ -370,18 +375,18 @@ public class GuiInvButtonEditor extends Screen {
         context.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xFF202020);
         drawBorderLocal(context, panelX, panelY, panelW, panelH, 0xFF505050);
 
-        context.drawCenteredTextWithShadow(textRenderer, "Profile Name", panelX + panelW / 2, panelY + 10, 0xFFFFFFFF);
+        context.centeredText(font, Component.literal("Profile Name"), panelX + panelW / 2, panelY + 10, 0xFFFFFFFF);
 
         int closeSize = 12;
         int closeX = panelX + panelW - closeSize - 5;
         int closeY = panelY + 5;
         boolean hoverClose = mouseX >= closeX && mouseX <= closeX + closeSize && mouseY >= closeY && mouseY <= closeY + closeSize;
         context.fill(closeX, closeY, closeX + closeSize, closeY + closeSize, hoverClose ? 0xFFFF0000 : 0xFFCC0000);
-        context.drawCenteredTextWithShadow(textRenderer, "x", closeX + closeSize / 2, closeY + 2, 0xFFFFFFFF);
+        context.centeredText(font, Component.literal("x"), closeX + closeSize / 2, closeY + 2, 0xFFFFFFFF);
 
         saveProfileField.setX(panelX + 30);
         saveProfileField.setY(panelY + 35);
-        saveProfileField.render(context, mouseX, mouseY, delta);
+        saveProfileField.extractRenderState(context, mouseX, mouseY, delta);
 
         int btnW = 60;
         int btnH = 20;
@@ -390,7 +395,7 @@ public class GuiInvButtonEditor extends Screen {
         boolean hoverConfirm = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
         context.fill(btnX, btnY, btnX + btnW, btnY + btnH, hoverConfirm ? 0xFF408040 : 0xFF206020);
         drawBorderLocal(context, btnX, btnY, btnW, btnH, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, "Save", btnX + btnW / 2, btnY + 6, 0xFFFFFFFF);
+        context.centeredText(font, Component.literal("Save"), btnX + btnW / 2, btnY + 6, 0xFFFFFFFF);
     }
 
     private void handleExport() {
@@ -398,8 +403,8 @@ public class GuiInvButtonEditor extends Screen {
             Gson gson = new Gson();
             String json = gson.toJson(InventoryButtons.instance.buttons);
             String encoded = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
-            if (this.client != null) {
-                this.client.keyboard.setClipboard(encoded);
+            if (this.minecraft != null) {
+                this.minecraft.keyboardHandler.setClipboard(encoded);
                 actionStatusText = "Exported to Clipboard!";
                 actionStatusEndTime = System.currentTimeMillis() + 3000;
             }
@@ -412,8 +417,8 @@ public class GuiInvButtonEditor extends Screen {
 
     private void handleImport() {
         try {
-            if (this.client != null) {
-                String clipboard = this.client.keyboard.getClipboard();
+            if (this.minecraft != null) {
+                String clipboard = this.minecraft.keyboardHandler.getClipboard();
                 if (clipboard == null || clipboard.isEmpty()) return;
 
                 String json = new String(Base64.getDecoder().decode(clipboard), StandardCharsets.UTF_8);
@@ -434,21 +439,21 @@ public class GuiInvButtonEditor extends Screen {
         }
     }
 
-    private void renderEditorPanel(DrawContext context, int mouseX, int mouseY, float delta) {
+    private void renderEditorPanel(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         context.fill(editorLeft, editorTop, editorLeft + editorWidth, editorTop + editorHeight, 0xFF202020);
         drawBorderLocal(context, editorLeft, editorTop, editorWidth, editorHeight, 0xFF505050);
 
-        context.drawText(textRenderer, "Command", editorLeft + 7, editorTop + 7, 0xFFA0A0A0, false);
+        context.text(font, Component.literal("Command"), editorLeft + 7, editorTop + 7, 0xFFA0A0A0, false);
         commandTextField.setX(editorLeft + 7);
         commandTextField.setY(editorTop + 19);
-        commandTextField.render(context, mouseX, mouseY, delta);
+        commandTextField.extractRenderState(context, mouseX, mouseY, delta);
 
-        context.drawText(textRenderer, "Background Style", editorLeft + 7, editorTop + 40, 0xFFA0A0A0, false);
+        context.text(font, Component.literal("Background Style"), editorLeft + 7, editorTop + 40, 0xFFA0A0A0, false);
         for (int i = 0; i < 5; i++) {
             int bx = editorLeft + 7 + (i * 20);
             int by = editorTop + 52;
 
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, bx, by, (float)(i * 18), 0.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+            context.blit(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, bx, by, (float)(i * 18), 0.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
             if (editingButton.backgroundIndex == i) {
                 drawBorderLocal(context, bx - 1, by - 1, 20, 20, 0xFF00FF00);
@@ -471,13 +476,13 @@ public class GuiInvButtonEditor extends Screen {
             context.fill(bx, filterY, bx + btnWidth, filterY + btnHeight, bgColor);
             drawBorderLocal(context, bx, filterY, btnWidth, btnHeight, borderColor);
 
-            context.drawItem(mode.icon, bx + (btnWidth - 16) / 2, filterY + (btnHeight - 16) / 2);
+            context.item(mode.icon, bx + (btnWidth - 16) / 2, filterY + (btnHeight - 16) / 2);
         }
 
-        context.drawText(textRenderer, "Search Icon", editorLeft + 7, editorTop + 100, 0xFFA0A0A0, false);
+        context.text(font, Component.literal("Search Icon"), editorLeft + 7, editorTop + 100, 0xFFA0A0A0, false);
         iconTextField.setX(editorLeft + 7);
         iconTextField.setY(editorTop + 112);
-        iconTextField.render(context, mouseX, mouseY, delta);
+        iconTextField.extractRenderState(context, mouseX, mouseY, delta);
 
         int listY = editorTop + 135;
         int listH = 82;
@@ -486,13 +491,13 @@ public class GuiInvButtonEditor extends Screen {
             String infoText = "Add Skull by ID";
             int titleX = editorLeft + 7;
             int titleY = editorTop + 135;
-            context.drawText(textRenderer, infoText, titleX, titleY, 0xFFA0A0A0, false);
+            context.text(font, Component.literal(infoText), titleX, titleY, 0xFFA0A0A0, false);
 
             int iconSize = 10;
-            int infoIconX = titleX + textRenderer.getWidth(infoText) + 5;
+            int infoIconX = titleX + font.width(infoText) + 5;
             int infoIconY = titleY - 1;
 
-            context.drawTexture(RenderPipelines.GUI_TEXTURED, INFO_ICON_TEXTURE, infoIconX, infoIconY, 0.0f, 0.0f, iconSize, iconSize, iconSize, iconSize);
+            context.blit(RenderPipelines.GUI_TEXTURED, INFO_ICON_TEXTURE, infoIconX, infoIconY, 0.0f, 0.0f, iconSize, iconSize, iconSize, iconSize);
 
             if (mouseX >= infoIconX && mouseX < infoIconX + iconSize && mouseY >= infoIconY && mouseY < infoIconY + iconSize) {
                 context.fill(infoIconX, infoIconY, infoIconX + iconSize, infoIconY + iconSize, 0x40FFFFFF);
@@ -500,7 +505,7 @@ public class GuiInvButtonEditor extends Screen {
 
             addSkullField.setX(editorLeft + 7);
             addSkullField.setY(editorTop + 147);
-            addSkullField.render(context, mouseX, mouseY, delta);
+            addSkullField.extractRenderState(context, mouseX, mouseY, delta);
 
             listY = editorTop + 170;
             listH = 47;
@@ -509,7 +514,7 @@ public class GuiInvButtonEditor extends Screen {
         renderIconList(context, mouseX, mouseY, listY, listH);
     }
 
-    private void renderSkullInfoPanel(DrawContext context, int mouseX, int mouseY) {
+    private void renderSkullInfoPanel(GuiGraphicsExtractor context, int mouseX, int mouseY) {
         int panelW = 150;
         int panelH = 190;
         int panelX = 10;
@@ -527,12 +532,12 @@ public class GuiInvButtonEditor extends Screen {
         } else {
             context.fill(closeX, closeY, closeX + closeSize, closeY + closeSize, 0xFFCC0000);
         }
-        context.drawCenteredTextWithShadow(textRenderer, "x", closeX + closeSize / 2, closeY + 1, 0xFFFFFFFF);
+        context.centeredText(font, Component.literal("x"), closeX + closeSize / 2, closeY + 1, 0xFFFFFFFF);
 
         int textX = panelX + 8;
         int textY = panelY + 8;
 
-        context.drawTextWithShadow(textRenderer, Text.literal("How to find Skull IDs").formatted(Formatting.YELLOW, Formatting.BOLD), textX, textY, 0xFFFFFFFF);
+        context.text(font, Component.literal("How to find Skull IDs").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), textX, textY, 0xFFFFFFFF, false);
         textY += 18;
 
         String[] steps = {
@@ -545,16 +550,16 @@ public class GuiInvButtonEditor extends Screen {
         };
 
         for (String step : steps) {
-            List<OrderedText> lines = textRenderer.wrapLines(Text.literal(step), panelW - 16);
-            for (OrderedText line : lines) {
-                context.drawText(textRenderer, line, textX, textY, 0xFFA0A0A0, false);
-                textY += textRenderer.fontHeight + 2;
+            List<FormattedCharSequence> lines = font.split(Component.literal(step), panelW - 16);
+            for (FormattedCharSequence line : lines) {
+                context.text(font, line, textX, textY, 0xFFA0A0A0, false);
+                textY += font.lineHeight + 2;
             }
             textY += 4;
         }
     }
 
-    private void renderIconList(DrawContext context, int mouseX, int mouseY, int listY, int listH) {
+    private void renderIconList(GuiGraphicsExtractor context, int mouseX, int mouseY, int listY, int listH) {
         int listX = editorLeft + 7;
         int listW = editorWidth - 14;
 
@@ -580,7 +585,7 @@ public class GuiInvButtonEditor extends Screen {
             int ix = listX + 2 + (col * 20);
             int iy = listY + 2 + (row * 20) - (scroll % 20);
 
-            result.render(context, ix, iy);
+            result.extractRenderState(context, ix, iy);
 
             if (mouseX >= ix && mouseX < ix + 18 && mouseY >= iy && mouseY < iy + 18) {
                 context.fill(ix, iy, ix + 18, iy + 18, 0x40FFFFFF);
@@ -591,7 +596,7 @@ public class GuiInvButtonEditor extends Screen {
         context.disableScissor();
 
         if (resultToTooltip != null) {
-            context.drawTooltip(textRenderer, Text.literal(resultToTooltip.getDisplayName()), mouseX, mouseY);
+            context.setTooltipForNextFrame(font, Component.literal(resultToTooltip.getDisplayName()), mouseX, mouseY);
         }
 
         int totalRows = (int) Math.ceil((double) searchedIcons.size() / cols);
@@ -614,7 +619,7 @@ public class GuiInvButtonEditor extends Screen {
             for (Map.Entry<String, String> entry : SKULL_ICONS.entrySet()) {
                 if (entry.getKey().toLowerCase().contains(lower)) {
                     ItemStack skullStack = InventoryButtons.CustomButtonData.getSkullStack(entry.getValue());
-                    skullStack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(entry.getKey()));
+                    skullStack.set(DataComponents.CUSTOM_NAME, Component.literal(entry.getKey()));
                     searchedIcons.add(new ItemStackResult(skullStack));
                 }
             }
@@ -636,13 +641,13 @@ public class GuiInvButtonEditor extends Screen {
         }
 
         if (currentMode == FilterMode.ALL || currentMode == FilterMode.ITEMS || currentMode == FilterMode.BLOCKS) {
-            for (Item item : Registries.ITEM) {
+            for (Item item : BuiltInRegistries.ITEM) {
                 boolean isBlock = item instanceof BlockItem;
                 if (currentMode == FilterMode.BLOCKS && !isBlock) continue;
                 if (currentMode == FilterMode.ITEMS && isBlock) continue;
 
-                Identifier id = Registries.ITEM.getId(item);
-                if (id.toString().contains(lower) || item.getName().getString().toLowerCase().contains(lower)) {
+                Identifier id = BuiltInRegistries.ITEM.getKey(item);
+                if (id.toString().contains(lower) || new ItemStack(item).getHoverName().getString().toLowerCase().contains(lower)) {
                     searchedIcons.add(new ItemStackResult(new ItemStack(item)));
                     if (searchedIcons.size() > 500 && !lower.isEmpty()) break;
                 }
@@ -660,7 +665,7 @@ public class GuiInvButtonEditor extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(net.minecraft.client.gui.Click click, boolean doubled) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent click, boolean doubled) {
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.button();
@@ -690,13 +695,13 @@ public class GuiInvButtonEditor extends Screen {
             int btnY = panelY + 65;
 
             if (mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
-                String name = saveProfileField.getText().trim();
+                String name = saveProfileField.getValue().trim();
                 if (!name.isEmpty()) {
                     InventoryButtons.saveProfile(name);
                     actionStatusText = "Saved: " + name;
                     actionStatusEndTime = System.currentTimeMillis() + 3000;
                     isSavePanelOpen = false;
-                    saveProfileField.setText("");
+                    saveProfileField.setValue("");
                 }
                 return true;
             }
@@ -779,7 +784,7 @@ public class GuiInvButtonEditor extends Screen {
                             mouseY >= skullFieldY && mouseY <= skullFieldY + addSkullField.getHeight());
 
                     int iconSize = 10;
-                    int infoIconX = editorLeft + 7 + textRenderer.getWidth("Add Skull by ID") + 5;
+                    int infoIconX = editorLeft + 7 + font.width("Add Skull by ID") + 5;
                     int infoIconY = skullTitleY - 1;
                     if (mouseX >= infoIconX && mouseX < infoIconX + iconSize && mouseY >= infoIconY && mouseY < infoIconY + iconSize) {
                         isInfoPanelOpen = !isInfoPanelOpen;
@@ -812,7 +817,7 @@ public class GuiInvButtonEditor extends Screen {
                     int index = (int)((mouseX - (editorLeft + 7)) / btnWidth);
                     if (index >= 0 && index < FilterMode.values().length) {
                         currentMode = FilterMode.values()[index];
-                        search(iconTextField.getText());
+                        search(iconTextField.getValue());
                         itemScroll.setTarget(0);
                         return true;
                     }
@@ -849,18 +854,18 @@ public class GuiInvButtonEditor extends Screen {
                         if (!btn.command.startsWith("/")) {
                             btn.command = "/" + btn.command;
                         }
-                        commandTextField.setText(btn.command);
-                        commandTextField.setCursor(btn.command.length(), false);
+                        commandTextField.setValue(btn.command);
+                        commandTextField.moveCursorTo(btn.command.length(), false);
                         commandTextField.setFocused(true);
                         iconTextField.setFocused(false);
                         addSkullField.setFocused(false);
                         if (btn.itemId.startsWith("skull:")) {
-                            addSkullField.setText(btn.itemId);
+                            addSkullField.setValue(btn.itemId);
                         } else {
-                            addSkullField.setText("");
+                            addSkullField.setValue("");
                         }
                         currentMode = FilterMode.ALL;
-                        search(iconTextField.getText());
+                        search(iconTextField.getValue());
                     }
                 }
                 isDragging = true;
@@ -877,7 +882,7 @@ public class GuiInvButtonEditor extends Screen {
             InventoryButtons.instance.buttons.add(newBtn);
             editingButton = newBtn;
             isEditorOpen = true;
-            commandTextField.setText(newBtn.command);
+            commandTextField.setValue(newBtn.command);
             commandTextField.setFocused(true);
             isDragging = true;
             dragOffsetX = 9;
@@ -915,14 +920,14 @@ public class GuiInvButtonEditor extends Screen {
                 String id = searchedIcons.get(index).getConfigId();
                 editingButton.itemId = id;
                 if (id.startsWith("skull:")) {
-                    addSkullField.setText(id);
+                    addSkullField.setValue(id);
                 }
             }
         }
     }
 
     @Override
-    public boolean mouseReleased(net.minecraft.client.gui.Click click) {
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent click) {
         isDragging = false;
         return super.mouseReleased(click);
     }
@@ -938,7 +943,7 @@ public class GuiInvButtonEditor extends Screen {
     }
 
     @Override
-    public boolean mouseDragged(net.minecraft.client.gui.Click click, double deltaX, double deltaY) {
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent click, double deltaX, double deltaY) {
         double mouseX = click.x();
         double mouseY = click.y();
 
@@ -1061,7 +1066,7 @@ public class GuiInvButtonEditor extends Screen {
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyInput input) {
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent input) {
         boolean inputsFocused = (isEditorOpen && (commandTextField.isFocused() || iconTextField.isFocused() || addSkullField.isFocused()))
                 || (isSavePanelOpen && saveProfileField.isFocused());
 
@@ -1077,13 +1082,13 @@ public class GuiInvButtonEditor extends Screen {
                 return true;
             }
             if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
-                String name = saveProfileField.getText().trim();
+                String name = saveProfileField.getValue().trim();
                 if (!name.isEmpty()) {
                     InventoryButtons.saveProfile(name);
                     actionStatusText = "Saved: " + name;
                     actionStatusEndTime = System.currentTimeMillis() + 3000;
                     isSavePanelOpen = false;
-                    saveProfileField.setText("");
+                    saveProfileField.setValue("");
                 }
                 return true;
             }
@@ -1095,9 +1100,9 @@ public class GuiInvButtonEditor extends Screen {
             if (isEditorOpen) {
                 if (commandTextField.isFocused()) {
                     if (input.key() == GLFW.GLFW_KEY_BACKSPACE) {
-                        String txt = commandTextField.getText();
-                        int cursor = commandTextField.getCursor();
-                        if (txt.equals("/") || (cursor <= 1 && commandTextField.getSelectedText().isEmpty())) {
+                        String txt = commandTextField.getValue();
+                        int cursor = commandTextField.getCursorPosition();
+                        if (txt.equals("/") || (cursor <= 1 && commandTextField.getHighlighted().isEmpty())) {
                             return true;
                         }
                     }
@@ -1121,7 +1126,7 @@ public class GuiInvButtonEditor extends Screen {
     }
 
     @Override
-    public boolean charTyped(net.minecraft.client.input.CharInput input) {
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent input) {
         if (isSavePanelOpen) {
             if (saveProfileField.charTyped(input)) return true;
             return super.charTyped(input);
@@ -1131,7 +1136,7 @@ public class GuiInvButtonEditor extends Screen {
                 return true;
             }
             if (iconTextField.isFocused() && iconTextField.charTyped(input)) {
-                search(iconTextField.getText());
+                search(iconTextField.getValue());
                 return true;
             }
             if (addSkullField.isFocused() && addSkullField.charTyped(input)) {
@@ -1142,10 +1147,10 @@ public class GuiInvButtonEditor extends Screen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         InventoryButtons.save();
-        if (parent != null) client.setScreen(parent);
-        else super.close();
+        if (parent != null) minecraft.setScreen(parent);
+        else super.onClose();
     }
 
     private static class LerpingInteger {

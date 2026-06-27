@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons.util;
 
 import com.google.gson.JsonArray;
@@ -5,13 +10,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.panda.inventorybuttons.InventoryButtons;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -20,6 +18,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 public class HypixelItemManager {
     public static final List<HypixelItem> SKULL_ITEMS = new ArrayList<>();
@@ -28,7 +29,30 @@ public class HypixelItemManager {
 
     private static final Pattern COLOR_CODE_PATTERN = Pattern.compile("%%.*?%%");
 
-    public record HypixelItem(String name, String id, ItemStack iconStack, String configId) {}
+    public static class HypixelItem {
+        private final String name;
+        private final String id;
+        private final String configId;
+        private ItemStack iconStack;
+
+        public HypixelItem(String name, String id, String configId) {
+            this.name = name;
+            this.id = id;
+            this.configId = configId;
+        }
+
+        public String name() { return name; }
+        public String id() { return id; }
+        public String configId() { return configId; }
+
+        public ItemStack iconStack() {
+            if (iconStack == null || iconStack.isEmpty()) {
+                iconStack = com.panda.inventorybuttons.InventoryButtons.CustomButtonData.getSkullStack(configId);
+                iconStack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+            }
+            return iconStack;
+        }
+    }
 
     public static void loadAsync() {
         if (loaded) return;
@@ -91,11 +115,8 @@ public class HypixelItemManager {
                             String hash = extractHash(skinBase64);
                             if (hash != null) {
                                 String configId = "skull:" + hash;
-                                ItemStack stack = InventoryButtons.CustomButtonData.getSkullStack(configId);
-                                stack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(name));
-
                                 synchronized (SKULL_ITEMS) {
-                                    SKULL_ITEMS.add(new HypixelItem(name, id, stack, configId));
+                                    SKULL_ITEMS.add(new HypixelItem(name, id, configId));
                                 }
                             }
                         }

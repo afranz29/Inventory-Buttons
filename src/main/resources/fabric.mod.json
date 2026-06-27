@@ -5,13 +5,13 @@
 	"name": "inventorybuttons",
 	"description": "This is an example description! Tell everyone what your mod is about!",
 	"authors": [
-		"Me!"
+		"afranz29/Panda"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
 		"sources": "https://github.com/FabricMC/fabric-example-mod"
 	},
-	"license": "CC0-1.0",
+	"license": "LGPLv3",
 	"icon": "assets/inventorybuttons/icon.png",
 	"environment": "*",
 	"entrypoints": {
@@ -28,7 +28,7 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.18.4",
-		"minecraft": ">=1.21.10 <=1.21.11",
+		"minecraft": "~26.1",
 		"java": ">=21",
 		"fabric-api": "*"
 	}
