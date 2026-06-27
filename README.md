@@ -17,7 +17,13 @@ This mod is available for **1.21.11** and **1.21.5**
 2. Open the installer and select the desired Minecraft version, loader version (latest recommended), and install location (default recommended).
 3. Press Install
 
-_For more information about installing Fabric_
+For more information about Fabric visit [https://fabricmc.net/](https://fabricmc.net/)
+
+## Install Fabric API
+__This mod requires Fabric API__
+
+1. Download Fabric API (mod) with the desired version from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/fabric-api/files/all) or [Modrinth](https://modrinth.com/mod/fabric-api)
+2. Place the downloaded .jar file into your .minecraft/mods folder.
 
 ### Install Inventory Buttons Mod
 1.  Download the latest `.jar` file from the [Releases](https://github.com/afranz29/Inventory-Buttons/releases) page.
