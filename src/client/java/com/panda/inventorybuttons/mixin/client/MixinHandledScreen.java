@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2026 Panda/afranz29
+ * This file is part of Inventory-Buttons, licensed under the LGPLv3.
+ */
+
 package com.panda.inventorybuttons.mixin.client;
 
 import com.panda.inventorybuttons.InventoryButtons;
