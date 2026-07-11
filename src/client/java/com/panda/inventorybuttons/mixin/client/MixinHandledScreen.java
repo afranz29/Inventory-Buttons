@@ -70,7 +70,7 @@ public abstract class MixinHandledScreen extends Screen {
             if (!isPlayerInventory) {
                 if (!btn.anchorBottom) {
                     if (btn.y < 80) {
-                        boolean isInsideX = (btn.x >= 0 && btn.x <= STANDARD_INV_WIDTH);
+                        boolean isInsideX = (btn.x >= -1 && btn.x <= STANDARD_INV_WIDTH);
                         boolean isInsideY = (btn.y >= 0);
 
                         if (!btn.anchorRight && isInsideX && isInsideY) {
@@ -159,7 +159,7 @@ public abstract class MixinHandledScreen extends Screen {
                 if (!isPlayerInventory) {
                     if (!btn.anchorBottom) {
                         if (btn.y < 80) {
-                            boolean isInsideX = (btn.x >= 0 && btn.x <= STANDARD_INV_WIDTH);
+                            boolean isInsideX = (btn.x >= -1 && btn.x <= STANDARD_INV_WIDTH);
                             boolean isInsideY = (btn.y >= 0);
 
                             if (!btn.anchorRight && isInsideX && isInsideY) {

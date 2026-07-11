@@ -89,8 +89,11 @@ public class InventoryButtons {
 			if (itemId == null || itemId.isEmpty()) return ItemStack.EMPTY;
 			if (itemId.startsWith("skull:")) return getSkullStack(itemId);
 			try {
-				if (!itemId.contains(":")) return ItemStack.EMPTY;
-				return new ItemStack(Registries.ITEM.get(Identifier.of(itemId)));
+				String itemKey = itemId;
+				if (!itemKey.contains(":")) {
+					itemKey = "minecraft:" + itemKey.toLowerCase(Locale.ROOT);
+				}
+				return new ItemStack(Registries.ITEM.get(Identifier.of(itemKey)));
 			} catch (Exception e) { return ItemStack.EMPTY; }
 		}
 

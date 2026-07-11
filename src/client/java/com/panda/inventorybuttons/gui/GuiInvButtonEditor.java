@@ -6,6 +6,10 @@
 package com.panda.inventorybuttons.gui;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.panda.inventorybuttons.InventoryButtons;
 import com.panda.inventorybuttons.util.HypixelItemManager;
@@ -419,23 +423,199 @@ public class GuiInvButtonEditor extends Screen {
         try {
             if (this.client != null) {
                 String clipboard = this.client.keyboard.getClipboard();
-                if (clipboard == null || clipboard.isEmpty()) return;
+                if (clipboard == null) return;
+                clipboard = clipboard.trim();
+                if (clipboard.isEmpty()) return;
 
-                String json = new String(Base64.getDecoder().decode(clipboard), StandardCharsets.UTF_8);
-                Gson gson = new Gson();
-                List<InventoryButtons.CustomButtonData> loaded = gson.fromJson(json, new TypeToken<List<InventoryButtons.CustomButtonData>>(){}.getType());
+                String decodedString = null;
+                try {
+                    // Try decoding as Base64 first
+                    byte[] decoded = Base64.getDecoder().decode(clipboard);
+                    decodedString = new String(decoded, StandardCharsets.UTF_8);
+                } catch (Exception e) {
+                    // Not Base64 or decoding failed; fallback to raw clipboard
+                    decodedString = clipboard;
+                }
 
-                if (loaded != null) {
+                // Strip potential prefix (e.g. "NEUBUTTONS/")
+                int firstBrace = decodedString.indexOf('{');
+                int firstBracket = decodedString.indexOf('[');
+                int startIndex = -1;
+                if (firstBrace != -1 && firstBracket != -1) {
+                    startIndex = Math.min(firstBrace, firstBracket);
+                } else if (firstBrace != -1) {
+                    startIndex = firstBrace;
+                } else if (firstBracket != -1) {
+                    startIndex = firstBracket;
+                }
+
+                if (startIndex > 0) {
+                    decodedString = decodedString.substring(startIndex);
+                }
+
+                JsonElement root = JsonParser.parseString(decodedString);
+                JsonArray arrayElement = null;
+
+                if (root.isJsonArray()) {
+                    arrayElement = root.getAsJsonArray();
+                } else if (root.isJsonObject()) {
+                    JsonObject rootObj = root.getAsJsonObject();
+                    // Check typical keys for layout wrappers
+                    if (rootObj.has("buttons") && rootObj.get("buttons").isJsonArray()) {
+                        arrayElement = rootObj.getAsJsonArray("buttons");
+                    } else if (rootObj.has("layout") && rootObj.get("layout").isJsonArray()) {
+                        arrayElement = rootObj.getAsJsonArray("layout");
+                    }
+                }
+
+                if (arrayElement == null) {
+                    throw new IllegalArgumentException("No buttons array found in JSON.");
+                }
+
+                List<InventoryButtons.CustomButtonData> loaded = new ArrayList<>();
+                for (JsonElement itemElem : arrayElement) {
+                    JsonObject obj = null;
+                    if (itemElem.isJsonObject()) {
+                        obj = itemElem.getAsJsonObject();
+                    } else if (itemElem.isJsonPrimitive() && itemElem.getAsJsonPrimitive().isString()) {
+                        // The element itself is a JSON string representing a button
+                        try {
+                            JsonElement innerElem = JsonParser.parseString(itemElem.getAsString());
+                            if (innerElem.isJsonObject()) {
+                                obj = innerElem.getAsJsonObject();
+                            }
+                        } catch (Exception parseEx) {
+                            parseEx.printStackTrace();
+                        }
+                    }
+
+                    if (obj == null) continue;
+
+                    // Resolve coordinates
+                    int x = 0;
+                    if (obj.has("x")) x = obj.get("x").getAsInt();
+                    int y = 0;
+                    if (obj.has("y")) y = obj.get("y").getAsInt();
+
+                    // Resolve command
+                    String command = "/";
+                    if (obj.has("command")) {
+                        command = obj.get("command").getAsString();
+                    } else if (obj.has("cmd")) {
+                        command = obj.get("cmd").getAsString();
+                    } else if (obj.has("action")) {
+                        command = obj.get("action").getAsString();
+                    }
+
+                    // Resolve Item ID/Icon
+                    String itemId = "";
+                    JsonElement iconElem = null;
+                    if (obj.has("itemId")) iconElem = obj.get("itemId");
+                    else if (obj.has("item")) iconElem = obj.get("item");
+                    else if (obj.has("icon")) iconElem = obj.get("icon");
+                    else if (obj.has("id")) iconElem = obj.get("id");
+
+                    if (iconElem != null) {
+                        if (iconElem.isJsonPrimitive()) {
+                            itemId = iconElem.getAsString();
+                        } else if (iconElem.isJsonObject()) {
+                            JsonObject iconObj = iconElem.getAsJsonObject();
+                            if (iconObj.has("id")) {
+                                itemId = iconObj.get("id").getAsString();
+                            } else if (iconObj.has("itemId")) {
+                                itemId = iconObj.get("itemId").getAsString();
+                            }
+                        }
+                    }
+
+                    itemId = normalizeItemId(itemId);
+                    InventoryButtons.CustomButtonData btn = new InventoryButtons.CustomButtonData(x, y, command, itemId);
+                    
+                    // Resolve optional layout anchors and backgrounds if they exist
+                    if (obj.has("backgroundIndex")) btn.backgroundIndex = obj.get("backgroundIndex").getAsInt();
+                    if (obj.has("anchorRight")) btn.anchorRight = obj.get("anchorRight").getAsBoolean();
+                    if (obj.has("anchorBottom")) btn.anchorBottom = obj.get("anchorBottom").getAsBoolean();
+
+                    loaded.add(btn);
+                }
+
+                if (!loaded.isEmpty()) {
                     InventoryButtons.instance.buttons = loaded;
                     InventoryButtons.save();
                     actionStatusText = "Imported Successfully!";
                     actionStatusEndTime = System.currentTimeMillis() + 3000;
+                } else {
+                    throw new IllegalArgumentException("No valid buttons could be parsed.");
                 }
             }
         } catch (Exception e) {
             actionStatusText = "Invalid Clipboard!";
             actionStatusEndTime = System.currentTimeMillis() + 3000;
             e.printStackTrace();
+        }
+    }
+
+    private static String normalizeItemId(String itemId) {
+        if (itemId == null) return "";
+        itemId = itemId.trim();
+        if (itemId.isEmpty()) return "";
+        if (itemId.startsWith("skull:")) return itemId;
+
+        // Strip minecraft: prefix if it has one, for clean mapping
+        if (itemId.startsWith("minecraft:")) {
+            itemId = itemId.substring("minecraft:".length());
+        }
+
+        // Convert to lowercase
+        itemId = itemId.toLowerCase(Locale.ROOT);
+
+        // Rename mappings
+        switch (itemId) {
+            case "gold_barding": return "minecraft:golden_horse_armor";
+            case "iron_barding": return "minecraft:iron_horse_armor";
+            case "diamond_barding": return "minecraft:diamond_horse_armor";
+            case "wood_button": return "minecraft:oak_button";
+            case "wood_door": return "minecraft:oak_door";
+            case "sign": return "minecraft:oak_sign";
+            case "sign_item": return "minecraft:oak_sign";
+            case "skull": return "minecraft:player_head";
+            case "skull_item": return "minecraft:player_head";
+            case "redstone_torch_on": return "minecraft:redstone_torch";
+            case "redstone_torch_off": return "minecraft:redstone_torch";
+            case "sulphur": return "minecraft:gunpowder";
+            case "sugar_cane": return "minecraft:sugar_cane";
+            case "pork": return "minecraft:porkchop";
+            case "grilled_pork": return "minecraft:cooked_porkchop";
+            case "empty_map": return "minecraft:map";
+            case "map": return "minecraft:filled_map";
+            case "raw_fish": return "minecraft:cod";
+            case "cooked_fish": return "minecraft:cooked_cod";
+            case "clownfish": return "minecraft:tropical_fish";
+            case "speckled_melon": return "minecraft:glistering_melon_slice";
+            case "carrot_item": return "minecraft:carrot";
+            case "potato_item": return "minecraft:potato";
+            case "fireball": return "minecraft:fire_charge";
+            case "exp_bottle": return "minecraft:experience_bottle";
+            case "netherbrick": return "minecraft:nether_brick";
+            case "mycel": return "minecraft:mycelium";
+            case "water_lily": return "minecraft:lily_pad";
+            case "cauldron_item": return "minecraft:cauldron";
+            case "brewing_stand_item": return "minecraft:brewing_stand";
+            case "flower_pot_item": return "minecraft:flower_pot";
+            case "log": return "minecraft:oak_log";
+            case "log_2": return "minecraft:acacia_log";
+            case "wood": return "minecraft:oak_planks";
+            case "stained_glass": return "minecraft:white_stained_glass";
+            case "stained_glass_pane": return "minecraft:white_stained_glass_pane";
+            case "sapling": return "minecraft:oak_sapling";
+            case "leaves": return "minecraft:oak_leaves";
+            case "wool": return "minecraft:white_wool";
+            case "carpet": return "minecraft:white_carpet";
+            default:
+                if (!itemId.contains(":")) {
+                    return "minecraft:" + itemId;
+                }
+                return itemId;
         }
     }
 
@@ -932,10 +1112,14 @@ public class GuiInvButtonEditor extends Screen {
         return super.mouseReleased(click);
     }
 
-    private boolean isOverlapping(int x, int y) {
+    private boolean isOverlapping(int proposedX, int proposedY) {
+        int proposedAbsX = proposedX + (editingButton.anchorRight ? xSize : 0);
+        int proposedAbsY = proposedY + (editingButton.anchorBottom ? ySize : 0);
         for (InventoryButtons.CustomButtonData btn : InventoryButtons.instance.buttons) {
             if (btn == editingButton) continue;
-            if (Math.abs(btn.x - x) < BUTTON_SIZE && Math.abs(btn.y - y) < BUTTON_SIZE) {
+            int btnAbsX = btn.x + (btn.anchorRight ? xSize : 0);
+            int btnAbsY = btn.y + (btn.anchorBottom ? ySize : 0);
+            if (Math.abs(btnAbsX - proposedAbsX) < BUTTON_SIZE && Math.abs(btnAbsY - proposedAbsY) < BUTTON_SIZE) {
                 return true;
             }
         }
@@ -951,86 +1135,88 @@ public class GuiInvButtonEditor extends Screen {
             int newScreenX = (int)mouseX - dragOffsetX;
             int newScreenY = (int)mouseY - dragOffsetY;
 
-            int relativeX = newScreenX - guiLeft;
-            int relativeY = newScreenY - guiTop;
+            int absoluteX = newScreenX - guiLeft;
+            int absoluteY = newScreenY - guiTop;
 
-            if (editingButton.anchorRight) relativeX -= xSize;
-            if (editingButton.anchorBottom) relativeY -= ySize;
-
-            int proposedX = editingButton.x;
-            int proposedY = editingButton.y;
+            int proposedAbsoluteX = absoluteX;
+            int proposedAbsoluteY = absoluteY;
 
             if (this.localGridSnap) {
-                boolean isOutsideX = (relativeX < 0) || (relativeX > xSize - BUTTON_SIZE);
-                boolean isOutsideY = (relativeY < 0) || (relativeY > ySize - BUTTON_SIZE);
+                boolean isOutsideX = (absoluteX < 0) || (absoluteX > xSize - BUTTON_SIZE);
+                boolean isOutsideY = (absoluteY < 0) || (absoluteY > ySize - BUTTON_SIZE);
 
                 if (!isOutsideX && !isOutsideY) {
                     Point bestMatch = null;
                     double closestDistSq = Double.MAX_VALUE;
                     for (Point p : INVENTORY_FIXED_SLOTS) {
-                        double distSq = Math.pow(relativeX - p.x, 2) + Math.pow(relativeY - p.y, 2);
+                        double distSq = Math.pow(absoluteX - p.x, 2) + Math.pow(absoluteY - p.y, 2);
                         if (distSq < closestDistSq) {
                             closestDistSq = distSq;
                             bestMatch = p;
                         }
                     }
                     if (bestMatch != null) {
-                        proposedX = bestMatch.x;
-                        proposedY = bestMatch.y;
+                        proposedAbsoluteX = bestMatch.x;
+                        proposedAbsoluteY = bestMatch.y;
                     }
                 } else {
-                    if (relativeX < 0) {
-                        int col = (relativeX + OUTER_PADDING) / OUTER_GRID_SIZE;
-                        proposedX = -OUTER_PADDING - BUTTON_SIZE + (col * OUTER_GRID_SIZE);
-                    } else if (relativeX > xSize - BUTTON_SIZE) {
-                        int col = (relativeX - xSize + OUTER_PADDING) / OUTER_GRID_SIZE;
-                        proposedX = xSize + OUTER_PADDING + (col * OUTER_GRID_SIZE);
+                    if (absoluteX < 0) {
+                        int col = (absoluteX + OUTER_PADDING) / OUTER_GRID_SIZE;
+                        proposedAbsoluteX = -OUTER_PADDING - BUTTON_SIZE + (col * OUTER_GRID_SIZE);
+                    } else if (absoluteX > xSize - BUTTON_SIZE) {
+                        int col = (absoluteX - xSize + OUTER_PADDING) / OUTER_GRID_SIZE;
+                        proposedAbsoluteX = xSize + OUTER_PADDING + (col * OUTER_GRID_SIZE);
                     } else {
                         if (isOutsideY) {
-                            int col = Math.round((float)(relativeX - TOP_BOTTOM_START_X) / OUTER_GRID_SIZE);
-                            proposedX = TOP_BOTTOM_START_X + (col * OUTER_GRID_SIZE);
+                            int col = Math.round((float)(absoluteX - TOP_BOTTOM_START_X) / OUTER_GRID_SIZE);
+                            proposedAbsoluteX = TOP_BOTTOM_START_X + (col * OUTER_GRID_SIZE);
                         }
                     }
 
-                    if (relativeY < 0) {
-                        int row = (relativeY + OUTER_PADDING) / OUTER_GRID_SIZE;
-                        proposedY = -OUTER_PADDING - BUTTON_SIZE + (row * OUTER_GRID_SIZE);
-                    } else if (relativeY > ySize - BUTTON_SIZE) {
-                        int row = (relativeY - ySize + OUTER_PADDING) / OUTER_GRID_SIZE;
-                        proposedY = ySize + OUTER_PADDING + (row * OUTER_GRID_SIZE);
+                    if (absoluteY < 0) {
+                        int row = (absoluteY + OUTER_PADDING) / OUTER_GRID_SIZE;
+                        proposedAbsoluteY = -OUTER_PADDING - BUTTON_SIZE + (row * OUTER_GRID_SIZE);
+                    } else if (absoluteY > ySize - BUTTON_SIZE) {
+                        int row = (absoluteY - ySize + OUTER_PADDING) / OUTER_GRID_SIZE;
+                        proposedAbsoluteY = ySize + OUTER_PADDING + (row * OUTER_GRID_SIZE);
                     } else {
                         if (isOutsideX) {
-                            int row = Math.round((float)(relativeY - OUTER_PADDING) / OUTER_GRID_SIZE);
-                            proposedY = OUTER_PADDING + (row * OUTER_GRID_SIZE);
+                            int row = Math.round((float)(absoluteY - OUTER_PADDING) / OUTER_GRID_SIZE);
+                            proposedAbsoluteY = OUTER_PADDING + (row * OUTER_GRID_SIZE);
                         }
                     }
                 }
             } else {
-                proposedX = relativeX;
-                proposedY = relativeY;
+                proposedAbsoluteX = absoluteX;
+                proposedAbsoluteY = absoluteY;
 
-                boolean insideBottomZone = (relativeX + BUTTON_SIZE > 0 && relativeX < 176) &&
-                        (relativeY + BUTTON_SIZE > 83 && relativeY < 166);
+                boolean insideBottomZone = (absoluteX + BUTTON_SIZE > 0 && absoluteX < 176) &&
+                        (absoluteY + BUTTON_SIZE > 83 && absoluteY < 166);
 
-                boolean insideLeftZone = (relativeX + BUTTON_SIZE > 0 && relativeX < 26) &&
-                        (relativeY + BUTTON_SIZE > 7 && relativeY < 83);
+                boolean insideLeftZone = (absoluteX + BUTTON_SIZE > 0 && absoluteX < 26) &&
+                        (absoluteY + BUTTON_SIZE > 7 && absoluteY < 83);
 
                 if (insideBottomZone || insideLeftZone) {
                     Point bestMatch = null;
                     double closestDistSq = Double.MAX_VALUE;
                     for (Point p : INVENTORY_FIXED_SLOTS) {
-                        double distSq = Math.pow(relativeX - p.x, 2) + Math.pow(relativeY - p.y, 2);
+                        double distSq = Math.pow(absoluteX - p.x, 2) + Math.pow(absoluteY - p.y, 2);
                         if (distSq < closestDistSq) {
                             closestDistSq = distSq;
                             bestMatch = p;
                         }
                     }
                     if (bestMatch != null) {
-                        proposedX = bestMatch.x;
-                        proposedY = bestMatch.y;
+                        proposedAbsoluteX = bestMatch.x;
+                        proposedAbsoluteY = bestMatch.y;
                     }
                 }
             }
+
+            int proposedX = proposedAbsoluteX;
+            int proposedY = proposedAbsoluteY;
+            if (editingButton.anchorRight) proposedX -= xSize;
+            if (editingButton.anchorBottom) proposedY -= ySize;
 
             if (!isOverlapping(proposedX, proposedY)) {
                 editingButton.x = proposedX;
