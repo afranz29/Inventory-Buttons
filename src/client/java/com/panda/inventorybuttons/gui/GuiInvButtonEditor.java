@@ -182,6 +182,8 @@ public class GuiInvButtonEditor extends Screen {
     private TextFieldWidget iconTextField;
     private TextFieldWidget addSkullField;
 
+    private CommandSuggestor commandSuggestor;
+
     private InventoryButtons.CustomButtonData editingButton = null;
 
     private final List<IconResult> searchedIcons = new ArrayList<>();
@@ -219,7 +221,10 @@ public class GuiInvButtonEditor extends Screen {
                 }
                 editingButton.command = text;
             }
+            if (commandSuggestor != null) commandSuggestor.refresh();
         });
+
+        this.commandSuggestor = new CommandSuggestor(this.client, this.commandTextField);
 
         this.iconTextField = new TextFieldWidget(this.textRenderer, 0, 0, editorWidth - 14, 16, Text.literal("Icon"));
         this.iconTextField.setMaxLength(256);
@@ -692,6 +697,9 @@ public class GuiInvButtonEditor extends Screen {
         }
 
         renderIconList(context, mouseX, mouseY, listY, listH);
+
+        // Drawn last so the completion popup sits on top of the rest of the panel.
+        commandSuggestor.render(context, mouseX, mouseY, this.width, this.height);
     }
 
     private void renderSkullInfoPanel(DrawContext context, int mouseX, int mouseY) {
@@ -943,6 +951,8 @@ public class GuiInvButtonEditor extends Screen {
 
         if (editingButton != null && isEditorOpen) {
             updateEditorCoordinates();
+
+            if (commandSuggestor.mouseClicked(mouseX, mouseY)) return true;
 
             int cmdY = editorTop + 19;
             int iconY = editorTop + 112;
@@ -1236,6 +1246,9 @@ public class GuiInvButtonEditor extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (editingButton != null && isEditorOpen && commandSuggestor.mouseScrolled(mouseX, mouseY, verticalAmount)) {
+            return true;
+        }
         if (editingButton != null && isEditorOpen && mouseX >= editorLeft && mouseX <= editorLeft + editorWidth) {
             int scroll = (int)(-verticalAmount * 10);
             int target = itemScroll.getTarget() + scroll;
@@ -1285,6 +1298,12 @@ public class GuiInvButtonEditor extends Screen {
         if (editingButton != null) {
             if (isEditorOpen) {
                 if (commandTextField.isFocused()) {
+                    if (commandSuggestor.keyPressed(input)) return true;
+                    if (input.key() == GLFW.GLFW_KEY_TAB) {
+                        // No suggestions ready yet: ask for them instead of cycling widget focus.
+                        commandSuggestor.refresh();
+                        return true;
+                    }
                     if (input.key() == GLFW.GLFW_KEY_BACKSPACE) {
                         String txt = commandTextField.getText();
                         int cursor = commandTextField.getCursor();
