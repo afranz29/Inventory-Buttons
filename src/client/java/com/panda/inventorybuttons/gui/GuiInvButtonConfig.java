@@ -356,7 +356,7 @@ public class GuiInvButtonConfig extends Screen {
     @Override
     public void onClose() {
         InventoryButtons.save();
-        if (this.minecraft != null) this.minecraft.setScreen(parent);
+        if (this.minecraft != null) this.minecraft.setScreenAndShow(parent);
     }
 
     interface BooleanSupplier { boolean get(); }

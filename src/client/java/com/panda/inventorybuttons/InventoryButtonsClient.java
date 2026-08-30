@@ -131,11 +131,11 @@ public class InventoryButtonsClient implements ClientModInitializer {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (openMenuNextTick) {
 				openMenuNextTick = false;
-				client.setScreen(new GuiInvButtonMenu());
+				client.setScreenAndShow(new GuiInvButtonMenu());
 			}
 			if (openEditorNextTick) {
 				openEditorNextTick = false;
-				client.setScreen(new GuiInvButtonEditor(null));
+				client.setScreenAndShow(new GuiInvButtonEditor(null));
 			}
 		});
 

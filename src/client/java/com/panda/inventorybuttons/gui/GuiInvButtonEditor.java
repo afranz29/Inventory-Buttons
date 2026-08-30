@@ -1149,7 +1149,7 @@ public class GuiInvButtonEditor extends Screen {
     @Override
     public void onClose() {
         InventoryButtons.save();
-        if (parent != null) minecraft.setScreen(parent);
+        if (parent != null) minecraft.setScreenAndShow(parent);
         else super.onClose();
     }
 
