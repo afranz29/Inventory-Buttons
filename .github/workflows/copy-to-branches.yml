@@ -1,0 +1,18 @@
+name: Copy To Branches
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  copy-to-branches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Copy To Branches Action
+        uses: planetoftheweb/copy-to-branches@v1.2
+        env:
+          key: main-26.1
+          exclude: main-1.21.x
+          files: README.md
