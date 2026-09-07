@@ -38,13 +38,13 @@ public class GuiInvButtonMenu extends Screen {
 
         menuButtons.add(new MenuButton(centerX, startY, btnWidth, btnHeight, "Config", () -> {
             if (this.minecraft != null) {
-                this.minecraft.setScreen(new GuiInvButtonConfig(this));
+                this.minecraft.setScreenAndShow(new GuiInvButtonConfig(this));
             }
         }));
 
         menuButtons.add(new MenuButton(centerX, startY + spacing, btnWidth, btnHeight, "Edit Buttons", () -> {
             if (this.minecraft != null) {
-                this.minecraft.setScreen(new GuiInvButtonEditor(this));
+                this.minecraft.setScreenAndShow(new GuiInvButtonEditor(this));
             }
         }));
 
