@@ -2,13 +2,15 @@
 
 A Fabric mod for Minecraft that brings the popular "Inventory Buttons" feature from [NotEnoughUpdates (NEU)](https://github.com/NotEnoughUpdates/NotEnoughUpdates) to modern versions of Minecraft.
 
-This mod is available for **1.21.11**, **1.21.5**, and **26.3**!
+This mod is available for **1.21.5**, and **26.3**!
+
+Older versions of the mod available for 1.21.5 and 1.21.11, but mostly focusing on 26.1+
 
 ## Features
 
 * **Quick Inventory Access:** Add customizable buttons to your inventory and chest GUIs for quick actions.
 * **Editor Mode:** Easily move and configure buttons to suit your playstyle.
-* **Fabric Port:** Native support for Minecraft 1.21.11 or 1.21.5 using the Fabric Mod Loader.
+* **Fabric Port:** Native support for Minecraft 26.1+ using the Fabric Mod Loader.
 
 ## Installation
 
@@ -38,6 +40,9 @@ This mod is a derivative work based on **NotEnoughUpdates (NEU)**.
 * **Assets & Design:** All textures and design concepts for the buttons and editor are the intellectual property of the NotEnoughUpdates contributors.
 
 Ported and maintained by Panda/afranz29.
+
+Contributed to by DiegoLikesPizza.
+
 This port is not endorsed by, affiliated with, or supported by the official NotEnoughUpdates team. Please do not report bugs regarding this mod to the official NEU tracker.
 
 ## License
