@@ -39,6 +39,7 @@ This mod is a derivative work based on **NotEnoughUpdates (NEU)**.
 * **Assets & Design:** All textures and design concepts for the buttons and editor are the intellectual property of the NotEnoughUpdates contributors.
 
 Ported and maintained by Panda (afranz29). 
+Contributed to by DiegoLikesPizza
 This port is not endorsed by, affiliated with, or supported by the official NotEnoughUpdates team. Please do not report bugs regarding this mod to the official NEU tracker.
 
 ## License
