@@ -5,6 +5,7 @@
 
 package com.panda.inventorybuttons.mixin.client;
 
+import com.panda.inventorybuttons.util.MinecraftCompat;
 import com.panda.inventorybuttons.InventoryButtons;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,7 +18,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
@@ -89,7 +89,7 @@ public abstract class MixinHandledScreen extends Screen {
             if (btn.anchorRight) btnX += xSize;
             if (btn.anchorBottom) btnY += ySize;
 
-            context.blit(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, btnX, btnY, (float)(btn.backgroundIndex * 18), 18.0f, 18, 18, 90, 36);
+            MinecraftCompat.blit(context, BUTTONS_TEXTURE, btnX, btnY, (float)(btn.backgroundIndex * 18), 18.0f, 18, 18, 90, 36);
 
             Identifier customTex = null;
             if (btn.itemId != null) {
@@ -102,7 +102,7 @@ public abstract class MixinHandledScreen extends Screen {
             }
 
             if (customTex != null) {
-                context.blit(RenderPipelines.GUI_TEXTURED, customTex, btnX + 1, btnY + 1, 0.0f, 0.0f, 16, 16, 16, 16);
+                MinecraftCompat.blit(context, customTex, btnX + 1, btnY + 1, 0.0f, 0.0f, 16, 16, 16, 16);
             } else {
                 ItemStack stack = btn.getItemStack();
                 if (!stack.isEmpty()) context.item(stack, btnX + 1, btnY + 1);
@@ -143,7 +143,7 @@ public abstract class MixinHandledScreen extends Screen {
             return;
         }
 
-        if (button == 0 && (Object)this instanceof AbstractContainerScreen) {
+        if (button == MinecraftCompat.MOUSE_BUTTON_LEFT && (Object)this instanceof AbstractContainerScreen) {
             HandledScreenAccessor accessor = (HandledScreenAccessor) this;
             int guiLeft = accessor.getXPosition();
             int guiTop = accessor.getYPosition();

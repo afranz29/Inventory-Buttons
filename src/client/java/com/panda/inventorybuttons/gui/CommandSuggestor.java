@@ -17,7 +17,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
+import com.panda.inventorybuttons.util.MinecraftCompat;
 
 import java.util.Collections;
 import java.util.List;
@@ -184,24 +184,24 @@ public class CommandSuggestor {
         if (!isOpen()) return false;
 
         int key = input.key();
-        if (key == GLFW.GLFW_KEY_TAB) {
+        if (key == MinecraftCompat.KEY_TAB) {
             if (tabCycles && entries.size() > 1) {
                 cycle(input.hasShiftDown() ? -1 : 1);
             }
             return applySelected();
         }
-        if (key == GLFW.GLFW_KEY_UP) {
+        if (key == MinecraftCompat.KEY_UP) {
             cycle(-1);
             return true;
         }
-        if (key == GLFW.GLFW_KEY_DOWN) {
+        if (key == MinecraftCompat.KEY_DOWN) {
             cycle(1);
             return true;
         }
-        if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
+        if (key == MinecraftCompat.KEY_RETURN || key == MinecraftCompat.KEY_NUMPADENTER) {
             return applySelected();
         }
-        if (key == GLFW.GLFW_KEY_ESCAPE) {
+        if (key == MinecraftCompat.KEY_ESCAPE) {
             hide();
             return true;
         }

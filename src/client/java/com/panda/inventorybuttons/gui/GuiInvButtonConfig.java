@@ -6,14 +6,13 @@
 package com.panda.inventorybuttons.gui;
 
 import com.panda.inventorybuttons.InventoryButtons;
-import org.lwjgl.glfw.GLFW;
+import com.panda.inventorybuttons.util.MinecraftCompat;
 
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -230,7 +229,7 @@ public class GuiInvButtonConfig extends Screen {
             if (mouseY < listY || mouseY > listY + listH) isDelHovered = false;
 
             context.fill(delBtn.x, drawY, delBtn.x + delBtn.w, drawY + delBtn.h, isDelHovered ? 0xA0000000 : 0x80000000);
-            context.blit(RenderPipelines.GUI_TEXTURED, TRASH_ICON, delBtn.x + 1, drawY + 1, 0, 0, 16, 16, 16, 16);
+            MinecraftCompat.blit(context, TRASH_ICON, delBtn.x + 1, drawY + 1, 0, 0, 16, 16, 16, 16);
 
             currentY += btn.h + 2;
         }
@@ -254,7 +253,7 @@ public class GuiInvButtonConfig extends Screen {
         double mouseY = click.y();
         int button = click.button();
 
-        if (button == 0) {
+        if (button == MinecraftCompat.MOUSE_BUTTON_LEFT) {
             int tabW = boxW / 2;
             if (mouseY >= boxY && mouseY < boxY + 16) {
                 if (mouseX >= boxX && mouseX < boxX + tabW) {
@@ -335,7 +334,7 @@ public class GuiInvButtonConfig extends Screen {
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent input) {
-        if (input.key() == GLFW.GLFW_KEY_ESCAPE && !profileNameField.isFocused()) {
+        if (input.key() == MinecraftCompat.KEY_ESCAPE && !profileNameField.isFocused()) {
             this.onClose();
             return true;
         }
@@ -356,7 +355,7 @@ public class GuiInvButtonConfig extends Screen {
     @Override
     public void onClose() {
         InventoryButtons.save();
-        if (this.minecraft != null) this.minecraft.setScreen(parent);
+        if (this.minecraft != null) this.minecraft.gui.setScreen(parent);
     }
 
     interface BooleanSupplier { boolean get(); }
