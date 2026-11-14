@@ -5,13 +5,13 @@
 
 package com.panda.inventorybuttons.gui;
 
+import com.panda.inventorybuttons.util.MinecraftCompat;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.util.Util;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -38,13 +38,13 @@ public class GuiInvButtonMenu extends Screen {
 
         menuButtons.add(new MenuButton(centerX, startY, btnWidth, btnHeight, "Config", () -> {
             if (this.minecraft != null) {
-                this.minecraft.setScreen(new GuiInvButtonConfig(this));
+                this.minecraft.gui.setScreen(new GuiInvButtonConfig(this));
             }
         }));
 
         menuButtons.add(new MenuButton(centerX, startY + spacing, btnWidth, btnHeight, "Edit Buttons", () -> {
             if (this.minecraft != null) {
-                this.minecraft.setScreen(new GuiInvButtonEditor(this));
+                this.minecraft.gui.setScreen(new GuiInvButtonEditor(this));
             }
         }));
 
@@ -54,7 +54,7 @@ public class GuiInvButtonMenu extends Screen {
             if (!file.exists()) {
                 file.mkdirs();
             }
-            Util.getPlatform().openFile(file);
+            MinecraftCompat.openPath(configDir);
         }));
     }
 
@@ -89,7 +89,7 @@ public class GuiInvButtonMenu extends Screen {
         double mouseY = click.y();
         int button = click.button();
 
-        if (button == 0) {
+        if (button == MinecraftCompat.MOUSE_BUTTON_LEFT) {
             for (MenuButton btn : menuButtons) {
                 if (mouseX >= btn.x && mouseX < btn.x + btn.width &&
                         mouseY >= btn.y && mouseY < btn.y + btn.height) {

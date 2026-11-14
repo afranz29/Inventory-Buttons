@@ -13,7 +13,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.panda.inventorybuttons.InventoryButtons;
 import com.panda.inventorybuttons.util.HypixelItemManager;
-import org.lwjgl.glfw.GLFW;
+import com.panda.inventorybuttons.util.MinecraftCompat;
 
 import java.awt.Point;
 import java.nio.charset.StandardCharsets;
@@ -22,7 +22,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -140,7 +139,7 @@ public class GuiInvButtonEditor extends Screen {
     private record TextureResult(String name, Identifier textureId) implements IconResult {
         @Override
         public void extractRenderState(GuiGraphicsExtractor context, int x, int y) {
-            context.blit(RenderPipelines.GUI_TEXTURED, textureId, x, y, 0.0f, 0.0f, 16, 16, 16, 16);
+            MinecraftCompat.blit(context, textureId, x, y, 0.0f, 0.0f, 16, 16, 16, 16);
         }
         @Override
         public String getDisplayName() { return name; }
@@ -272,7 +271,7 @@ public class GuiInvButtonEditor extends Screen {
         guiLeft = (this.width - xSize) / 2;
         guiTop = (this.height - ySize) / 2;
 
-        context.blit(RenderPipelines.GUI_TEXTURED, INVENTORY_TEXTURE, guiLeft, guiTop, 0.0f, 0.0f, xSize, ySize, 256, 256);
+        MinecraftCompat.blit(context, INVENTORY_TEXTURE, guiLeft, guiTop, 0.0f, 0.0f, xSize, ySize, 256, 256);
 
         for (InventoryButtons.CustomButtonData button : InventoryButtons.instance.buttons) {
             int x = guiLeft + button.x;
@@ -284,7 +283,7 @@ public class GuiInvButtonEditor extends Screen {
                 context.fill(x, y, x + 18, y + 18, 0x8000FF00);
                 drawBorderLocal(context, x, y, 18, 18, 0xFFFFFFFF);
             } else {
-                context.blit(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, x, y, (float)(button.backgroundIndex * 18), 18.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+                MinecraftCompat.blit(context, BUTTONS_TEXTURE, x, y, (float)(button.backgroundIndex * 18), 18.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
             }
 
             if (button.itemId != null && !button.itemId.isEmpty()) {
@@ -297,7 +296,7 @@ public class GuiInvButtonEditor extends Screen {
                 }
 
                 if (customTex != null) {
-                    context.blit(RenderPipelines.GUI_TEXTURED, customTex, x + 1, y + 1, 0.0f, 0.0f, 16, 16, 16, 16);
+                    MinecraftCompat.blit(context, customTex, x + 1, y + 1, 0.0f, 0.0f, 16, 16, 16, 16);
                 } else {
                     ItemStack stack = button.getItemStack();
                     if (!stack.isEmpty()) {
@@ -638,7 +637,7 @@ public class GuiInvButtonEditor extends Screen {
             int bx = editorLeft + 7 + (i * 20);
             int by = editorTop + 52;
 
-            context.blit(RenderPipelines.GUI_TEXTURED, BUTTONS_TEXTURE, bx, by, (float)(i * 18), 0.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+            MinecraftCompat.blit(context, BUTTONS_TEXTURE, bx, by, (float)(i * 18), 0.0f, 18, 18, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
             if (editingButton.backgroundIndex == i) {
                 drawBorderLocal(context, bx - 1, by - 1, 20, 20, 0xFF00FF00);
@@ -682,7 +681,7 @@ public class GuiInvButtonEditor extends Screen {
             int infoIconX = titleX + font.width(infoText) + 5;
             int infoIconY = titleY - 1;
 
-            context.blit(RenderPipelines.GUI_TEXTURED, INFO_ICON_TEXTURE, infoIconX, infoIconY, 0.0f, 0.0f, iconSize, iconSize, iconSize, iconSize);
+            MinecraftCompat.blit(context, INFO_ICON_TEXTURE, infoIconX, infoIconY, 0.0f, 0.0f, iconSize, iconSize, iconSize, iconSize);
 
             if (mouseX >= infoIconX && mouseX < infoIconX + iconSize && mouseY >= infoIconY && mouseY < infoIconY + iconSize) {
                 context.fill(infoIconX, infoIconY, infoIconX + iconSize, infoIconY + iconSize, 0x40FFFFFF);
@@ -1065,7 +1064,7 @@ public class GuiInvButtonEditor extends Screen {
             }
         }
 
-        if (button == 1) {
+        if (button == MinecraftCompat.MOUSE_BUTTON_RIGHT) {
             int relX = (int)mouseX - guiLeft;
             int relY = (int)mouseY - guiTop;
             InventoryButtons.CustomButtonData newBtn = new InventoryButtons.CustomButtonData(relX, relY, "/cmd", "minecraft:stone");
@@ -1269,18 +1268,18 @@ public class GuiInvButtonEditor extends Screen {
         boolean inputsFocused = (isEditorOpen && (commandTextField.isFocused() || iconTextField.isFocused() || addSkullField.isFocused()))
                 || (isSavePanelOpen && saveProfileField.isFocused());
 
-        if (input.key() == GLFW.GLFW_KEY_S && !inputsFocused) {
+        if (input.key() == MinecraftCompat.KEY_S && !inputsFocused) {
             this.localGridSnap = !this.localGridSnap;
             return true;
         }
 
         if (isSavePanelOpen) {
-            if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+            if (input.key() == MinecraftCompat.KEY_ESCAPE) {
                 isSavePanelOpen = false;
                 saveProfileField.setFocused(false);
                 return true;
             }
-            if (input.key() == GLFW.GLFW_KEY_ENTER || input.key() == GLFW.GLFW_KEY_KP_ENTER) {
+            if (input.key() == MinecraftCompat.KEY_RETURN || input.key() == MinecraftCompat.KEY_NUMPADENTER) {
                 String name = saveProfileField.getValue().trim();
                 if (!name.isEmpty()) {
                     InventoryButtons.saveProfile(name);
@@ -1299,12 +1298,12 @@ public class GuiInvButtonEditor extends Screen {
             if (isEditorOpen) {
                 if (commandTextField.isFocused()) {
                     if (commandSuggestor.keyPressed(input)) return true;
-                    if (input.key() == GLFW.GLFW_KEY_TAB) {
+                    if (input.key() == MinecraftCompat.KEY_TAB) {
                         // No suggestions ready yet: ask for them instead of cycling widget focus.
                         commandSuggestor.refresh();
                         return true;
                     }
-                    if (input.key() == GLFW.GLFW_KEY_BACKSPACE) {
+                    if (input.key() == MinecraftCompat.KEY_BACKSPACE) {
                         String txt = commandTextField.getValue();
                         int cursor = commandTextField.getCursorPosition();
                         if (txt.equals("/") || (cursor <= 1 && commandTextField.getHighlighted().isEmpty())) {
@@ -1316,7 +1315,7 @@ public class GuiInvButtonEditor extends Screen {
                 if (iconTextField.isFocused()) return iconTextField.keyPressed(input);
                 if (addSkullField.isFocused()) return addSkullField.keyPressed(input);
             }
-            if (input.key() == GLFW.GLFW_KEY_DELETE || input.key() == GLFW.GLFW_KEY_BACKSPACE) {
+            if (input.key() == MinecraftCompat.KEY_DELETE || input.key() == MinecraftCompat.KEY_BACKSPACE) {
                 if (!isEditorOpen || (!commandTextField.isFocused() && !iconTextField.isFocused() && !addSkullField.isFocused())) {
                     InventoryButtons.instance.buttons.remove(editingButton);
                     editingButton = null;
@@ -1354,7 +1353,7 @@ public class GuiInvButtonEditor extends Screen {
     @Override
     public void onClose() {
         InventoryButtons.save();
-        if (parent != null) minecraft.setScreen(parent);
+        if (parent != null) minecraft.gui.setScreen(parent);
         else super.onClose();
     }
 
